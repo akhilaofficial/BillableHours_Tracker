@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPI-USE | Billable Hours Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --midnight: #001844;
+    --midnight-soft: #0d2d66;
+    --crimson: #ce181e;
+    --pale-blue: #6797b8;
+    --mist: #edf3f8;
+    --paper: #ffffff;
+    --ink: #173156;
+    --muted: #617694;
+    --line: rgba(0, 24, 68, 0.12);
+    --shadow: 0 24px 60px rgba(0, 24, 68, 0.14);
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 999px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    font-family: 'Open Sans', sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at top right, rgba(103, 151, 184, 0.28), transparent 28%),
+      linear-gradient(180deg, #f7fafc 0%, #eff4f8 100%);
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  .shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    background: rgba(0, 24, 68, 0.92);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .brand-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .brand-kicker {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  .brand-title {
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .logo-mark {
+    width: 230px;
+    height: auto;
+    display: block;
+    flex: 0 0 auto;
+    background: white;
+    border-radius: 8px;
+    padding: 0.15rem 0.35rem;
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .btn {
+    border: 0;
+    border-radius: var(--radius-sm);
+    padding: 0.82rem 1.2rem;
+    font-size: 0.83rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-primary {
+    color: white;
+    background: linear-gradient(135deg, var(--crimson), #e03439);
+    box-shadow: 0 14px 28px rgba(206, 24, 30, 0.28);
+  }
+
+  .btn-secondary {
+    color: white;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .main {
+    width: min(1280px, calc(100vw - 2rem));
+    margin: 0 auto;
+    padding: 2rem 0 3rem;
+  }
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 2.2rem;
+    border-radius: 30px;
+    background:
+      linear-gradient(135deg, rgba(0, 24, 68, 0.98) 0%, rgba(13, 45, 102, 0.96) 52%, rgba(103, 151, 184, 0.9) 100%);
+    box-shadow: var(--shadow);
+    color: white;
+  }
+
+  .hero::before,
+  .hero::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .hero::before {
+    width: 420px;
+    height: 420px;
+    right: -130px;
+    top: -170px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 70%);
+  }
+
+  .hero::after {
+    width: 320px;
+    height: 320px;
+    left: -80px;
+    bottom: -180px;
+    background: radial-gradient(circle, rgba(206, 24, 30, 0.24), transparent 72%);
+  }
+
+  .hero-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+    gap: 1.5rem;
+    align-items: end;
+  }
+
+  .eyebrow {
+    margin-bottom: 0.85rem;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+
+  .hero h1 {
+    max-width: 12ch;
+    font-family: 'Lato', sans-serif;
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    line-height: 0.96;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+  }
+
+  .hero h1 span {
+    color: #d7e7f4;
+  }
+
+  .hero-copy {
+    max-width: 58ch;
+    margin-top: 1rem;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .hero-panel {
+    position: relative;
+    padding: 1.4rem;
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+  }
+
+  .hero-panel-label {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+
+  .hero-panel-week {
+    margin-top: 0.65rem;
+    font-family: 'Lato', sans-serif;
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .hero-panel-copy {
+    margin-top: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .cycle-form {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    align-items: end;
+  }
+
+  .cycle-field label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  .cycle-input {
+    min-height: 46px;
+    color: white;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .cycle-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .stat {
+    position: relative;
+    overflow: hidden;
+    background: var(--paper);
+    border: 1px solid rgba(103, 151, 184, 0.18);
+    border-radius: 22px;
+    padding: 1.3rem 1.35rem;
+    box-shadow: 0 12px 30px rgba(17, 50, 91, 0.08);
+  }
+
+  .stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 6px;
+    background: linear-gradient(180deg, var(--crimson), var(--pale-blue));
+  }
+
+  .stat-label {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  .stat-value {
+    margin-top: 0.9rem;
+    font-family: 'Lato', sans-serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 900;
+    line-height: 1;
+    color: var(--midnight);
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    gap: 1.4rem;
+    margin-top: 1.5rem;
+    align-items: start;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(0, 24, 68, 0.08);
+    border-radius: 26px;
+    box-shadow: 0 16px 40px rgba(0, 24, 68, 0.08);
+    backdrop-filter: blur(10px);
+  }
+
+  .card-inner {
+    padding: 1.6rem;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.35rem;
+  }
+
+  .card-kicker {
+    color: var(--crimson);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  .card-title {
+    margin-top: 0.35rem;
+    font-family: 'Lato', sans-serif;
+    font-size: 1.55rem;
+    font-weight: 900;
+    color: var(--midnight);
+    letter-spacing: -0.03em;
+  }
+
+  .card-subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-width: 52ch;
+  }
+
+  .consultant-list {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .consultant-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.05rem;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(237, 243, 248, 0.9), rgba(255, 255, 255, 0.94));
+    border: 1px solid rgba(103, 151, 184, 0.18);
+  }
+
+  .consultant-name {
+    font-weight: 700;
+    color: var(--midnight);
+  }
+
+  .consultant-phone,
+  .mono {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .btn-danger {
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--crimson);
+    background: rgba(206, 24, 30, 0.08);
+    border: 1px solid rgba(206, 24, 30, 0.18);
+  }
+
+  .add-form {
+    margin-top: 1.35rem;
+    padding-top: 1.35rem;
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .field-label {
+    color: var(--muted);
+    font-size: 0.73rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.92rem 1rem;
+    color: var(--ink);
+    background: white;
+    border: 1px solid rgba(103, 151, 184, 0.34);
+    border-radius: 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--pale-blue);
+    box-shadow: 0 0 0 4px rgba(103, 151, 184, 0.12);
+  }
+
+  input::placeholder {
+    color: #93a5ba;
+  }
+
+  .week-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .week-tab {
+    border: 1px solid rgba(103, 151, 184, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.95rem;
+    background: white;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .week-tab.active,
+  .week-tab:hover {
+    color: white;
+    background: linear-gradient(135deg, var(--midnight), var(--midnight-soft));
+    border-color: transparent;
+  }
+
+  .status-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .filter-chip {
+    border: 1px solid rgba(103, 151, 184, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.8rem;
+    background: #f8fbfd;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .filter-chip.active {
+    background: rgba(0, 24, 68, 0.96);
+    color: white;
+    border-color: transparent;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 22px;
+    border: 1px solid rgba(103, 151, 184, 0.18);
+    background: white;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    padding: 0.95rem 1rem;
+    background: #eff5fa;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    text-align: left;
+  }
+
+  td {
+    padding: 1rem;
+    border-top: 1px solid rgba(0, 24, 68, 0.06);
+    vertical-align: top;
+    font-size: 0.92rem;
+  }
+
+  tr:hover td {
+    background: rgba(237, 243, 248, 0.45);
+  }
+
+  .hours-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.8rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, rgba(103, 151, 184, 0.18), rgba(206, 24, 30, 0.08));
+    border: 1px solid rgba(103, 151, 184, 0.22);
+    color: var(--midnight);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 700;
+  }
+
+  .muted-cell {
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.7rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .status-replied {
+    background: rgba(34, 138, 87, 0.14);
+    color: #1d6d46;
+  }
+
+  .status-pending {
+    background: rgba(103, 151, 184, 0.18);
+    color: var(--midnight);
+  }
+
+  .status-needs_follow_up {
+    background: rgba(206, 24, 30, 0.12);
+    color: var(--crimson);
+  }
+
+  .status-failed {
+    background: rgba(130, 29, 29, 0.14);
+    color: #8d2323;
+  }
+
+  .action-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .btn-small {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.75rem;
+    box-shadow: none;
+  }
+
+  .btn-outline {
+    color: var(--midnight);
+    background: white;
+    border: 1px solid rgba(103, 151, 184, 0.28);
+  }
+
+  .no-response {
+    color: var(--muted);
+    padding: 1.1rem 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+  }
+
+  .toast {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 20;
+    max-width: min(380px, calc(100vw - 2rem));
+    padding: 0.95rem 1.15rem;
+    border-radius: 18px;
+    background: rgba(0, 24, 68, 0.96);
+    color: white;
+    font-size: 0.86rem;
+    box-shadow: 0 20px 40px rgba(0, 24, 68, 0.3);
+    transform: translateY(16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 24, 68, 0.48);
+    backdrop-filter: blur(8px);
+  }
+
+  .modal-backdrop.open {
+    display: flex;
+  }
+
+  .modal-card {
+    width: min(760px, 100%);
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 30px 80px rgba(0, 24, 68, 0.28);
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 1.25rem 1.4rem;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .modal-title {
+    font-family: 'Lato', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--midnight);
+  }
+
+  .modal-subtitle {
+    margin-top: 0.25rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .icon-btn {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .modal-body {
+    display: grid;
+    gap: 1rem;
+  }
+
+  textarea.message-box {
+    width: 100%;
+    min-height: 140px;
+    resize: vertical;
+    padding: 1rem;
+    color: var(--ink);
+    background: white;
+    border: 1px solid rgba(103, 151, 184, 0.34);
+    border-radius: 16px;
+  }
+
+  .history-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .history-item {
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    background: #f8fbfd;
+    border: 1px solid rgba(103, 151, 184, 0.18);
+  }
+
+  .history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .history-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--midnight);
+  }
+
+  .history-time {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .history-body {
+    color: var(--ink);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .history-error {
+    margin-top: 0.35rem;
+    color: #8d2323;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  @media (max-width: 1080px) {
+    .hero-grid,
+    .content-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .topbar,
+    .main {
+      width: 100%;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .topbar {
+      position: static;
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .brand-lockup,
+    .topbar-actions {
+      width: 100%;
+    }
+
+    .brand-title {
+      white-space: normal;
+    }
+
+    .hero {
+      padding: 1.5rem;
+      border-radius: 24px;
+    }
+
+    .cycle-form {
+      grid-template-columns: 1fr;
+    }
+
+    .stats {
+      grid-template-columns: 1fr;
+    }
+
+    .card-inner {
+      padding: 1.2rem;
+    }
+
+    .card-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand-lockup">
+      <img class="logo-mark" src="{{ url_for('static', filename='logo.jpg') }}" alt="EPI-USE logo">
+      <div class="brand-copy">
+        <div class="brand-kicker">A member of Group Elephant</div>
+        <div class="brand-title">Billable Hours Tracker</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-primary" onclick="sendNow()">Send Texts Now</button>
+    </div>
+  </div>
+
+  <main class="main">
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">SAP HR / Payroll Operations</div>
+          <h1>Weekly Hours <span>Forecast</span></h1>
+          <p class="hero-copy">
+            Track consultant forecasts, prompt your team for updates, and review the week at a glance.
+          </p>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-label">Current Reporting Cycle</div>
+          <div class="hero-panel-week" id="hero-week">Loading...</div>
+          <p class="hero-panel-copy">
+            Use the roster to manage consultants, review incoming responses by week, and trigger a manual send whenever you need to prompt the team.
+          </p>
+          <div class="cycle-form">
+            <div class="cycle-field">
+              <label for="reporting-cycle-input">Cycle Date</label>
+              <input class="cycle-input" id="reporting-cycle-input" type="date">
+            </div>
+            <button class="btn btn-secondary" type="button" onclick="updateReportingCycle()">Save Cycle</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="stat-label">This Week Total Hours</div>
+        <div class="stat-value" id="stat-total">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Responses Received</div>
+        <div class="stat-value" id="stat-responses">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Average Per Person</div>
+        <div class="stat-value" id="stat-avg">—</div>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <aside class="card">
+        <div class="card-inner">
+          <div class="card-header">
+            <div>
+              <div class="card-kicker">Team Directory</div>
+              <h2 class="card-title">Consultants</h2>
+            </div>
+          </div>
+
+          <div id="consultant-list" class="consultant-list">Loading...</div>
+
+          <div class="add-form">
+            <div class="field-label">Full Name</div>
+            <input id="inp-name" type="text" placeholder="Jane Smith">
+            <div class="field-label">Mobile Number</div>
+            <input id="inp-phone" type="tel" placeholder="+1 617 555 0000">
+            <button class="btn btn-primary" onclick="addConsultant()">Add Consultant</button>
+          </div>
+        </div>
+      </aside>
+
+      <section class="card">
+        <div class="card-inner">
+          <div class="card-header">
+            <div>
+              <div class="card-kicker">Weekly Reporting</div>
+              <h2 class="card-title">Forecast Responses</h2>
+            </div>
+            <p class="card-subtitle">
+              Browse reporting weeks, review the submitted forecast, and inspect the original consultant reply without leaving the page.
+            </p>
+            <button class="btn btn-primary" type="button" onclick="sendBulkReminders()">Remind Non-Responders</button>
+          </div>
+
+          <div class="week-tabs" id="week-tabs"></div>
+          <div class="status-filters" id="status-filters"></div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Consultant</th>
+                  <th>Status</th>
+                  <th>Hours</th>
+                  <th>Reply</th>
+                  <th>Received</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="response-body">
+                <tr><td colspan="6" class="no-response">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <div class="modal-backdrop" id="message-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modal-title">Follow Up</div>
+          <div class="modal-subtitle" id="modal-subtitle"></div>
+        </div>
+        <button class="icon-btn" type="button" onclick="closeMessageModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <div class="field-label">Message</div>
+          <textarea class="message-box" id="message-body"></textarea>
+        </div>
+        <div>
+          <div class="field-label">History</div>
+          <div class="history-list" id="message-history"></div>
+        </div>
+      </div>
+      <div class="modal-footer action-stack">
+        <button class="btn btn-outline" type="button" onclick="closeMessageModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="sendMessageFromModal()">Send Message</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let reportingRows = [];
+  let weeks = [];
+  let selectedWeek = null;
+  let consultants = [];
+  let reportingCycleDate = null;
+  let activeFilter = 'all';
+  let activeMessageTarget = null;
+
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'pending', label: 'No reply' },
+    { key: 'failed', label: 'Send failed' },
+    { key: 'replied', label: 'Replied' },
+    { key: 'needs_follow_up', label: 'Needs follow-up' }
+  ];
+
+  function formatWeekLabel(week) {
+    if (!week) return 'No responses yet';
+    const date = new Date(`${week}T12:00:00`);
+    return date.toLocaleDateString(undefined, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  function weekBadge(week) {
+    if (!week) return '';
+    const date = new Date(`${week}T12:00:00`);
+    const temp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    temp.setUTCDate(temp.getUTCDate() + 4 - (temp.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(temp.getUTCFullYear(), 0, 1));
+    const isoWeek = Math.ceil((((temp - yearStart) / 86400000) + 1) / 7);
+    return `${temp.getUTCFullYear()}-W${String(isoWeek).padStart(2, '0')}`;
+  }
+
+  async function load() {
+    await loadReportingCycle();
+    await Promise.all([loadConsultants(), loadResponses(), loadSummary()]);
+  }
+
+  async function loadConsultants() {
+    const res = await fetch('/api/consultants');
+    consultants = await res.json();
+    renderConsultants();
+  }
+
+  async function loadReportingCycle() {
+    const res = await fetch('/api/reporting-cycle');
+    const data = await res.json();
+    reportingCycleDate = data.reporting_cycle_date;
+    const input = document.getElementById('reporting-cycle-input');
+    input.value = reportingCycleDate ?? '';
+    document.getElementById('hero-week').textContent = formatWeekLabel(reportingCycleDate);
+  }
+
+  async function loadResponses() {
+    const res = await fetch('/api/responses?weeks=12');
+    const allResponses = await res.json();
+    weeks = [...new Set([reportingCycleDate, ...allResponses.map(r => r.week_of)].filter(Boolean))].sort((a, b) => b.localeCompare(a));
+    if (!selectedWeek) {
+      selectedWeek = weeks.includes(reportingCycleDate) ? reportingCycleDate : (weeks[0] ?? reportingCycleDate);
+    }
+    const statusRes = await fetch(`/api/reporting-status?week_of=${encodeURIComponent(selectedWeek)}`);
+    reportingRows = await statusRes.json();
+    document.getElementById('hero-week').textContent = formatWeekLabel(reportingCycleDate ?? selectedWeek);
+    renderWeekTabs();
+    renderFilters();
+    renderResponses();
+  }
+
+  async function loadSummary() {
+    const activeWeek = selectedWeek ?? reportingCycleDate;
+    const query = activeWeek ? `?week_of=${encodeURIComponent(activeWeek)}` : '?weeks=1';
+    const res = await fetch(`/api/summary${query}`);
+    const data = await res.json();
+    if (data.length) {
+      document.getElementById('stat-total').textContent = data[0].total_hours?.toFixed(0) ?? '—';
+      document.getElementById('stat-responses').textContent = data[0].responses ?? '—';
+      document.getElementById('stat-avg').textContent = data[0].avg_hours?.toFixed(1) ?? '—';
+      return;
+    }
+    document.getElementById('stat-total').textContent = '0';
+    document.getElementById('stat-responses').textContent = '0';
+    document.getElementById('stat-avg').textContent = '—';
+  }
+
+  function renderConsultants() {
+    const el = document.getElementById('consultant-list');
+    if (!consultants.length) {
+      el.innerHTML = '<p class="no-response">No consultants yet.</p>';
+      return;
+    }
+
+    el.innerHTML = consultants.map(c => `
+      <div class="consultant-item">
+        <div>
+          <div class="consultant-name">${c.name}</div>
+          <div class="consultant-phone">${c.phone}</div>
+        </div>
+        <button class="btn btn-danger" onclick="removeConsultant(${c.id})">Remove</button>
+      </div>
+    `).join('');
+  }
+
+  function renderWeekTabs() {
+    const el = document.getElementById('week-tabs');
+    if (!weeks.length) {
+      el.innerHTML = '<p class="no-response">No reporting weeks yet.</p>';
+      return;
+    }
+
+    el.innerHTML = weeks.map(w => `
+      <button class="week-tab ${w === selectedWeek ? 'active' : ''}" onclick="selectWeek('${w}')">${weekBadge(w)}</button>
+    `).join('');
+  }
+
+  function renderFilters() {
+    const el = document.getElementById('status-filters');
+    el.innerHTML = filters.map(filter => `
+      <button class="filter-chip ${filter.key === activeFilter ? 'active' : ''}" onclick="setFilter('${filter.key}')">${filter.label}</button>
+    `).join('');
+  }
+
+  function renderResponses() {
+    const tbody = document.getElementById('response-body');
+    const filtered = reportingRows.filter(row => {
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'pending') return row.status === 'pending';
+      return row.status === activeFilter;
+    });
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="no-response">No consultants match this filter for the selected week.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td>${r.name}</td>
+        <td><span class="status-pill status-${r.status}">${r.status_label}</span></td>
+        <td>${r.hours != null ? `<span class="hours-pill">${r.hours}</span>` : '<span class="no-response">—</span>'}</td>
+        <td class="muted-cell">${r.raw_reply ?? '—'}</td>
+        <td class="muted-cell">${r.received_at ? r.received_at.slice(0, 16).replace('T', ' ') : '—'}</td>
+        <td>
+          <div class="action-stack">
+            <button class="btn btn-outline btn-small" type="button" onclick="openMessageModal(${r.consultant_id}, '${escapeJs(r.name)}', '${escapeJs(r.phone)}')">
+              ${r.status === 'replied' ? 'Message Again' : (r.status === 'failed' ? 'Retry' : 'Send Reminder')}
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function selectWeek(w) {
+    selectedWeek = w;
+    Promise.all([loadResponses(), loadSummary()]);
+  }
+
+  function setFilter(filterKey) {
+    activeFilter = filterKey;
+    renderFilters();
+    renderResponses();
+  }
+
+  function escapeJs(value) {
+    return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  }
+
+  function defaultReminderMessage(name, weekOf) {
+    const label = formatWeekLabel(weekOf);
+    return `Hi ${name}, quick follow-up on your billable hours forecast for the week of ${label}. Please reply with the number of hours you expect to log.`;
+  }
+
+  async function updateReportingCycle() {
+    const input = document.getElementById('reporting-cycle-input');
+    const reporting_cycle_date = input.value;
+    if (!reporting_cycle_date) return showToast('Choose a reporting cycle date');
+
+    const res = await fetch('/api/reporting-cycle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reporting_cycle_date })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      showToast(data.error ?? 'Could not update reporting cycle');
+      return;
+    }
+
+    reportingCycleDate = data.reporting_cycle_date;
+    selectedWeek = reportingCycleDate;
+    document.getElementById('hero-week').textContent = formatWeekLabel(reportingCycleDate);
+    await Promise.all([loadResponses(), loadSummary()]);
+    showToast(data.message ?? 'Reporting cycle updated');
+  }
+
+  async function addConsultant() {
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    if (!name || !phone) return showToast('Name and phone are required');
+
+    const res = await fetch('/api/consultants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone })
+    });
+
+    if (res.ok) {
+      document.getElementById('inp-name').value = '';
+      document.getElementById('inp-phone').value = '';
+      await loadConsultants();
+      showToast(`${name} added`);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error ?? 'Could not add consultant');
+    }
+  }
+
+  async function removeConsultant(id) {
+    if (!confirm('Remove this consultant?')) return;
+    await fetch(`/api/consultants/${id}`, { method: 'DELETE' });
+    await Promise.all([loadConsultants(), loadResponses()]);
+    showToast('Consultant removed');
+  }
+
+  async function sendNow() {
+    if (!confirm('Send the weekly text to all consultants now?')) return;
+    const res = await fetch('/api/send-now', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    showToast(data.message ?? 'Texts sent');
+    await loadResponses();
+  }
+
+  async function sendBulkReminders() {
+    if (!confirm('Send reminder messages to all consultants who still need follow-up for this cycle?')) return;
+    const res = await fetch('/api/messages/bulk-remind', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ week_of: selectedWeek })
+    });
+    const data = await res.json().catch(() => ({}));
+    showToast(data.message ?? 'Bulk reminder complete');
+    await loadResponses();
+  }
+
+  function exportCSV() {
+    window.location = '/api/export';
+  }
+
+  async function openMessageModal(consultantId, name, phone) {
+    activeMessageTarget = { consultantId, name, phone };
+    document.getElementById('modal-title').textContent = `Follow up with ${name}`;
+    document.getElementById('modal-subtitle').textContent = `${phone} • Reporting cycle ${formatWeekLabel(selectedWeek)}`;
+    document.getElementById('message-body').value = defaultReminderMessage(name, selectedWeek);
+    document.getElementById('message-history').innerHTML = '<div class="no-response">Loading history...</div>';
+    document.getElementById('message-modal').classList.add('open');
+
+    const res = await fetch(`/api/consultants/${consultantId}/history?week_of=${encodeURIComponent(selectedWeek)}`);
+    const data = await res.json().catch(() => ({}));
+    renderHistory(data.history ?? []);
+  }
+
+  function closeMessageModal() {
+    document.getElementById('message-modal').classList.remove('open');
+    activeMessageTarget = null;
+  }
+
+  function renderHistory(items) {
+    const el = document.getElementById('message-history');
+    if (!items.length) {
+      el.innerHTML = '<div class="no-response">No history yet for this reporting cycle.</div>';
+      return;
+    }
+
+    el.innerHTML = items.map(item => `
+      <div class="history-item">
+        <div class="history-head">
+          <div class="history-label">${item.label}</div>
+          <div class="history-time">${item.timestamp ? item.timestamp.slice(0, 16).replace('T', ' ') : '—'}</div>
+        </div>
+        <div class="history-body">${item.body ?? '—'}</div>
+        ${item.error_message ? `<div class="history-error">${item.error_message}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  async function sendMessageFromModal() {
+    if (!activeMessageTarget) return;
+    const body = document.getElementById('message-body').value.trim();
+    if (!body) return showToast('Enter a message before sending');
+
+    const res = await fetch('/api/messages/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        consultant_id: activeMessageTarget.consultantId,
+        week_of: selectedWeek,
+        body,
+        message_type: 'manual_follow_up'
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    showToast(data.message ?? 'Message sent');
+
+    if (res.ok) {
+      closeMessageModal();
+      await loadResponses();
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  load();
+</script>
+</body>
+</html>

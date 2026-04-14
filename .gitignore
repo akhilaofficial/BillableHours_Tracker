@@ -1,0 +1,13 @@
+adv_venv/
+.env
+hours.db
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+{app,templates,static}/

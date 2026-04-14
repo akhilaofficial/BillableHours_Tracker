@@ -1,0 +1,6 @@
+Project notes
+
+- Flask app workspace: adv_hoursapp
+- Virtual environment: adv_venv
+- Keep Twilio credentials and phone numbers in .env only
+- Do not store account IDs, auth tokens, or production phone numbers in notes files

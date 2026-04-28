@@ -814,7 +814,7 @@
     <section class="hero">
       <div class="hero-grid">
         <div>
-          <div class="eyebrow">SAP HR / Payroll Operations</div>
+          <div class="eyebrow">Advance Operations</div>
           <h1>Weekly Hours <span>Forecast</span></h1>
           <p class="hero-copy">
             Track consultant forecasts, prompt your team for updates, and review the week at a glance.
@@ -967,13 +967,27 @@
     });
   }
 
+  function getIsoWeekNumber(week) {
+    if (!week) return null;
+    const date = new Date(`${week}T12:00:00`);
+    const temp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    temp.setUTCDate(temp.getUTCDate() + 4 - (temp.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(temp.getUTCFullYear(), 0, 1));
+    return Math.ceil((((temp - yearStart) / 86400000) + 1) / 7);
+  }
+
+  function formatDashboardWeekLabel(week) {
+    if (!week) return 'No responses yet';
+    const weekNumber = getIsoWeekNumber(week);
+    return `${formatWeekLabel(week)} (Week ${weekNumber})`;
+  }
+
   function weekBadge(week) {
     if (!week) return '';
     const date = new Date(`${week}T12:00:00`);
     const temp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     temp.setUTCDate(temp.getUTCDate() + 4 - (temp.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(temp.getUTCFullYear(), 0, 1));
-    const isoWeek = Math.ceil((((temp - yearStart) / 86400000) + 1) / 7);
+    const isoWeek = getIsoWeekNumber(week);
     return `${temp.getUTCFullYear()}-W${String(isoWeek).padStart(2, '0')}`;
   }
 
@@ -994,7 +1008,7 @@
     reportingCycleDate = data.reporting_cycle_date;
     const input = document.getElementById('reporting-cycle-input');
     input.value = reportingCycleDate ?? '';
-    document.getElementById('hero-week').textContent = formatWeekLabel(reportingCycleDate);
+    document.getElementById('hero-week').textContent = formatDashboardWeekLabel(reportingCycleDate);
   }
 
   async function loadResponses() {
@@ -1006,7 +1020,7 @@
     }
     const statusRes = await fetch(`/api/reporting-status?week_of=${encodeURIComponent(selectedWeek)}`);
     reportingRows = await statusRes.json();
-    document.getElementById('hero-week').textContent = formatWeekLabel(reportingCycleDate ?? selectedWeek);
+    document.getElementById('hero-week').textContent = formatDashboardWeekLabel(reportingCycleDate ?? selectedWeek);
     renderWeekTabs();
     renderFilters();
     renderResponses();
@@ -1135,7 +1149,7 @@
 
     reportingCycleDate = data.reporting_cycle_date;
     selectedWeek = reportingCycleDate;
-    document.getElementById('hero-week').textContent = formatWeekLabel(reportingCycleDate);
+    document.getElementById('hero-week').textContent = formatDashboardWeekLabel(reportingCycleDate);
     await Promise.all([loadResponses(), loadSummary()]);
     showToast(data.message ?? 'Reporting cycle updated');
   }
@@ -1196,7 +1210,7 @@
   async function openMessageModal(consultantId, name, phone) {
     activeMessageTarget = { consultantId, name, phone };
     document.getElementById('modal-title').textContent = `Follow up with ${name}`;
-    document.getElementById('modal-subtitle').textContent = `${phone} • Reporting cycle ${formatWeekLabel(selectedWeek)}`;
+    document.getElementById('modal-subtitle').textContent = `${phone} • Reporting cycle ${formatDashboardWeekLabel(selectedWeek)}`;
     document.getElementById('message-body').value = defaultReminderMessage(name, selectedWeek);
     document.getElementById('message-history').innerHTML = '<div class="no-response">Loading history...</div>';
     document.getElementById('message-modal').classList.add('open');

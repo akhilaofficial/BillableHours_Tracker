@@ -56,13 +56,13 @@ export $(cat .env | xargs)
 python app.py
 ```
 
-The app runs on http://localhost:5000
+The app runs on http://localhost:8000
 
 ### 5. Expose to the internet (so Twilio can reach your webhook)
 
 For local development, use [ngrok](https://ngrok.com):
 ```bash
-ngrok http 5000
+ngrok http 8000
 # Copy the https URL, e.g. https://abc123.ngrok.io
 ```
 

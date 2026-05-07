@@ -441,12 +441,12 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
-    margin-bottom: 1.2rem;
+    margin: 0;
   }
 
   .week-tab {
     border: 1px solid rgba(103, 151, 184, 0.3);
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     padding: 0.6rem 0.95rem;
     background: white;
     color: var(--muted);
@@ -467,12 +467,12 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
-    margin-bottom: 1rem;
+    margin: 0;
   }
 
   .filter-chip {
     border: 1px solid rgba(103, 151, 184, 0.3);
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     padding: 0.45rem 0.8rem;
     background: #f8fbfd;
     color: var(--muted);
@@ -487,11 +487,28 @@
     border-color: transparent;
   }
 
+  .weekly-report-card .card-header {
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 24, 68, 0.08);
+  }
+
+  .report-controls {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+    margin: 0 0 1rem;
+    border: 1px solid rgba(103, 151, 184, 0.18);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #f8fbfd 0%, #ffffff 100%);
+  }
+
   .table-wrap {
     overflow-x: auto;
-    border-radius: 22px;
+    border-radius: 8px;
     border: 1px solid rgba(103, 151, 184, 0.18);
     background: white;
+    box-shadow: 0 16px 36px rgba(0, 24, 68, 0.08);
   }
 
   table {
@@ -500,9 +517,12 @@
   }
 
   th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     padding: 0.95rem 1rem;
-    background: #eff5fa;
-    color: var(--muted);
+    background: var(--midnight);
+    color: white;
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -515,6 +535,7 @@
     border-top: 1px solid rgba(0, 24, 68, 0.06);
     vertical-align: top;
     font-size: 0.92rem;
+    background: white;
   }
 
   tr:hover td {
@@ -805,7 +826,8 @@
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-secondary" onclick="exportWeeklyCSV()">Export Weekly CSV</button>
+      <button class="btn btn-secondary" onclick="exportMonthlyCSV()">Export Monthly CSV</button>
       <button class="btn btn-primary" onclick="sendNow()">Send Texts Now</button>
     </div>
   </div>
@@ -874,7 +896,7 @@
         </div>
       </aside>
 
-      <section class="card">
+      <section class="card weekly-report-card">
         <div class="card-inner">
           <div class="card-header">
             <div>
@@ -887,8 +909,10 @@
             <button class="btn btn-primary" type="button" onclick="sendBulkReminders()">Remind Non-Responders</button>
           </div>
 
-          <div class="week-tabs" id="week-tabs"></div>
-          <div class="status-filters" id="status-filters"></div>
+          <div class="report-controls">
+            <div class="week-tabs" id="week-tabs"></div>
+            <div class="status-filters" id="status-filters"></div>
+          </div>
 
           <div class="table-wrap">
             <table>
@@ -899,11 +923,12 @@
                   <th>Hours</th>
                   <th>Reply</th>
                   <th>Received</th>
+                  <th>Failure</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="response-body">
-                <tr><td colspan="6" class="no-response">Loading...</td></tr>
+                <tr><td colspan="7" class="no-response">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1088,7 +1113,7 @@
     });
 
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="no-response">No consultants match this filter for the selected week.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="no-response">No consultants match this filter for the selected week.</td></tr>';
       return;
     }
 
@@ -1099,6 +1124,7 @@
         <td>${r.hours != null ? `<span class="hours-pill">${r.hours}</span>` : '<span class="no-response">—</span>'}</td>
         <td class="muted-cell">${r.raw_reply ?? '—'}</td>
         <td class="muted-cell">${r.received_at ? r.received_at.slice(0, 16).replace('T', ' ') : '—'}</td>
+        <td class="muted-cell">${r.last_error ? `${r.last_error_code ? `[${r.last_error_code}] ` : ''}${r.last_error}` : '-'}</td>
         <td>
           <div class="action-stack">
             <button class="btn btn-outline btn-small" type="button" onclick="openMessageModal(${r.consultant_id}, '${escapeJs(r.name)}', '${escapeJs(r.phone)}')">
@@ -1203,8 +1229,16 @@
     await loadResponses();
   }
 
-  function exportCSV() {
-    window.location = '/api/export';
+  function exportWeeklyCSV() {
+    const week = selectedWeek ?? reportingCycleDate;
+    const query = week ? `?week_of=${encodeURIComponent(week)}` : '';
+    window.location = `/api/export/weekly${query}`;
+  }
+
+  function exportMonthlyCSV() {
+    const month = (selectedWeek ?? reportingCycleDate ?? '').slice(0, 7);
+    const query = month ? `?month=${encodeURIComponent(month)}` : '';
+    window.location = `/api/export/monthly/csv${query}`;
   }
 
   async function openMessageModal(consultantId, name, phone) {
@@ -1239,7 +1273,7 @@
           <div class="history-time">${item.timestamp ? item.timestamp.slice(0, 16).replace('T', ' ') : '—'}</div>
         </div>
         <div class="history-body">${item.body ?? '—'}</div>
-        ${item.error_message ? `<div class="history-error">${item.error_message}</div>` : ''}
+        ${item.error_message ? `<div class="history-error">${item.error_code ? `[${item.error_code}] ` : ''}${item.error_message}</div>` : ''}
       </div>
     `).join('');
   }

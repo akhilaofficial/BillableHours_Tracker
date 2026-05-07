@@ -1,6 +1,11 @@
 adv_venv/
 .env
 hours.db
+*.db
+*.log
+.claude/
+reports/
+*.xlsx
 .DS_Store
 __pycache__/
 *.pyc

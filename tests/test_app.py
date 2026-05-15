@@ -33,6 +33,18 @@ def test_parse_hours(tracker_app):
     assert tracker_app.parse_hours("no hours yet") is None
 
 
+def test_health_check(tracker_app):
+    previous_password = tracker_app.ADMIN_PASSWORD
+    tracker_app.ADMIN_PASSWORD = "secret"
+    try:
+        response = tracker_app.app.test_client().get("/healthz")
+    finally:
+        tracker_app.ADMIN_PASSWORD = previous_password
+
+    assert response.status_code == 200
+    assert response.json == {"ok": True}
+
+
 def test_current_week_monday_uses_current_utc_week_without_setting(tracker_app):
     with tracker_app.get_db() as db:
         db.execute("DELETE FROM app_settings WHERE key = ?", ("reporting_cycle_date",))

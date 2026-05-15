@@ -1,95 +1,189 @@
 # Billable Hours Tracker
 
-Sends a weekly SMS to your consulting team asking for their billable hour forecast.
-Collects replies and shows them in a dashboard. Exports to CSV.
+Flask application for weekly consultant billable-hours collection by SMS.
 
-## Prototype Status
+The app sends weekly Twilio prompts, receives consultant replies at `/sms`, stores hours in SQLite, and provides a password-protected dashboard with weekly/monthly exports.
 
-This repository is a working prototype/MVP, not a production-hardened application.
+## Production Status
 
-Current prototype capabilities:
-- Sends weekly SMS prompts through Twilio
-- Receives replies through a Twilio webhook
-- Stores responses in SQLite
-- Provides a local admin dashboard for reporting, reminders, and exports
+Ready for a small production pilot after the Twilio production setup is complete.
 
-Not yet production-ready:
-- No authentication or role-based access control
-- Uses SQLite instead of a production database
-- Limited error monitoring and operational logging
-- Local environment and Twilio configuration are expected
+Production pieces already in the app:
+- Dashboard Basic Auth using `ADMIN_USERNAME` and `ADMIN_PASSWORD`
+- Twilio webhook signature validation using `VALIDATE_TWILIO_WEBHOOKS=true`
+- Weekly and monthly CSV exports
+- Monthly Excel export with summary, detail, and chart sheets
+- Month-split weekly reporting segments, for example `2026-W18A` and `2026-W18B`
+- UTC scheduler for weekly prompts and monthly report generation
+- Optional Sentry error reporting
+- `/healthz` endpoint for host health checks
+- Gunicorn `Procfile` for Railway/Render-style deployment
 
-Before handing off to a production developer:
-- Keep `.env`, `hours.db`, and local virtual environment files out of version control
-- Review Twilio credentials, webhook configuration, and deployment approach
-- Plan for hosting, monitoring, backups, and security hardening
+## Twilio Production Setup
 
-## How It Works
+For U.S. texting from a 10DLC Twilio number, complete A2P 10DLC registration before production use.
 
-1. Every Monday at 9 AM, every consultant gets a text:
-   > "Hi Sarah! 👋 How many billable hours will you log this week? (Reply with just a number, e.g. 40)"
-2. They reply with a number. The app parses it and stores it.
-3. You check the dashboard at `http://your-server/` to see totals and per-person breakdowns.
+Recommended Twilio steps:
+1. Upgrade the Twilio account and add billing.
+2. Buy or keep one production SMS-capable U.S. number.
+3. Register the Brand in Twilio Trust Hub.
+4. Register the Campaign/use case for weekly operational consultant messages.
+5. Include opt-in, opt-out, and help language in the campaign submission.
+6. After approval, attach the Twilio number to the approved Messaging Service or campaign.
+7. Set the inbound messaging webhook to:
 
-## Setup
-
-### 1. Install dependencies
-```bash
-pip install -r requirements.txt
+```text
+https://your-production-domain/sms
 ```
 
-### 2. Set up Twilio
-- Sign up at https://twilio.com (free trial available)
-- Buy a phone number (~$1/month)
-- Get your Account SID and Auth Token from the Twilio console
+Twilio currently requires A2P registration for application-to-person SMS to U.S. recipients over 10DLC numbers. Twilio documentation says campaign review can take 10-15 days during busy periods.
 
-### 3. Configure environment variables
+## Environment Variables
+
+Use `.env.production.example` as the deployment checklist.
+
+Required:
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `TWILIO_PHONE`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
+- `PUBLIC_BASE_URL`
+- `VALIDATE_TWILIO_WEBHOOKS=true`
+- `DB_PATH`
+- `REPORT_OUTPUT_DIR`
+
+Optional:
+- `SENTRY_DSN`
+- `SENTRY_TRACES_SAMPLE_RATE`
+- `WEEKLY_PROMPT_UTC_HOUR`
+- `MONTHLY_REPORT_UTC_HOUR`
+
+Scheduler values are UTC. Keep the host cron/scheduler configuration in UTC too.
+
+## Local Development
+
+Install dependencies:
+
 ```bash
-cp .env.example .env
-# Edit .env with your Twilio credentials
+pip install -r requirements-dev.txt
 ```
 
-### 4. Run the app
+Create local environment:
+
 ```bash
-# Load env vars and start
-export $(cat .env | xargs)
+copy .env.example .env
+```
+
+Run locally:
+
+```bash
 python app.py
 ```
 
-The app runs on http://localhost:8000
+Local app URL:
 
-### 5. Expose to the internet (so Twilio can reach your webhook)
-
-For local development, use [ngrok](https://ngrok.com):
-```bash
-ngrok http 8000
-# Copy the https URL, e.g. https://abc123.ngrok.io
+```text
+http://127.0.0.1:8000
 ```
 
-In your Twilio console → Phone Numbers → your number → Messaging:
-- Set "A message comes in" → Webhook → `https://abc123.ngrok.io/sms`
+For local Twilio webhook testing, expose the app with ngrok:
 
-For production, deploy to [Railway](https://railway.app) or [Render](https://render.com) (both have free tiers).
+```bash
+ngrok http 8000
+```
 
-## Dashboard Features
+Then set the Twilio inbound webhook to:
 
-- **Consultants panel** — Add/remove team members by name + phone number
-- **Weekly tabs** — Browse responses by week
-- **Stats** — Total hours, # of responses, average per person
-- **Send Now** — Trigger the text blast manually (great for testing)
-- **Export CSV** — Download all data as a spreadsheet
+```text
+https://your-ngrok-domain/sms
+```
 
-## Database
+If webhook validation is enabled locally, set `PUBLIC_BASE_URL` to the exact ngrok domain.
 
-SQLite file (`hours.db`) with three tables:
-- `consultants` — roster of names + phone numbers
-- `responses` — one row per person per week (week_of, hours, raw reply)
-- `sent_log` — record of every outbound message
+## Production Deployment
 
-## Deploying to Railway (recommended)
+Chosen low-cost deployment:
+- Host: Render
+- Runtime: Python
+- Start command: from `Procfile`
+- Database: SQLite on a persistent mounted volume for the initial 50-consultant pilot
+- Monitoring: Sentry free tier
+- SMS: Twilio 10DLC with approved A2P campaign
 
-1. Push this folder to a GitHub repo
-2. Go to railway.app → New Project → Deploy from GitHub
-3. Add environment variables in the Railway dashboard
-4. Railway gives you a public URL — point your Twilio webhook there
-5. Done. It'll run forever on their free tier for small teams.
+This repo includes `render.yaml` for a Render Blueprint deploy.
+
+Render settings used by the Blueprint:
+- Service type: Web Service
+- Runtime: Python
+- Branch: `AS_branch1`
+- Plan: `starter`
+- Region: `ohio`
+- Health check path: `/healthz`
+- Persistent disk: `/data`
+- SQLite database path: `/data/hours.db`
+- Report output path: `/data/reports`
+
+Production command:
+
+```bash
+gunicorn --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT app:app
+```
+
+Use one Gunicorn worker because APScheduler runs inside the Flask process. Multiple workers would start duplicate scheduled jobs.
+
+Set persistent paths on the host:
+
+```text
+DB_PATH=/data/hours.db
+REPORT_OUTPUT_DIR=/data/reports
+```
+
+Use the actual mounted volume path from your host if it differs from `/data`.
+
+### Deploy on Render
+
+1. Push `AS_branch1` to GitHub.
+2. In Render, choose **New > Blueprint**.
+3. Connect the GitHub repo.
+4. Select the repo root `render.yaml`.
+5. Fill the `sync: false` environment variables in Render:
+   - `TWILIO_ACCOUNT_SID`
+   - `TWILIO_AUTH_TOKEN`
+   - `TWILIO_PHONE`
+   - `ADMIN_PASSWORD`
+   - `PUBLIC_BASE_URL`
+   - `SENTRY_DSN` if using Sentry
+6. Deploy the service.
+7. After Render gives the live URL, set `PUBLIC_BASE_URL` to that exact URL.
+8. In Twilio, set the inbound webhook for the production number to:
+
+```text
+https://your-render-service.onrender.com/sms
+```
+
+Render services have an ephemeral filesystem by default, so the persistent disk is required while using SQLite. Render's disk docs say only files written under the mount path are preserved across deploys and restarts.
+
+## Smoke Test After Deploy
+
+1. Open `https://your-production-domain/healthz`
+2. Confirm it returns `{"ok": true}`
+3. Open the dashboard and confirm Basic Auth is required
+4. Add one internal test consultant number
+5. Send one manual weekly prompt
+6. Reply from the phone
+7. Confirm the dashboard shows the response
+8. Download weekly CSV
+9. Download monthly CSV and monthly Excel
+10. Check Twilio logs for delivery errors
+11. Check Sentry for errors
+
+## Tests
+
+Run:
+
+```bash
+pytest -q
+```
+
+The tests cover core parsing, current week calculation, SMS reply handling, exports, split-month week reporting, and the health check.

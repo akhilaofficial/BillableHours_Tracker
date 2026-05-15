@@ -640,7 +640,7 @@ def is_authorized_request():
 
 @app.before_request
 def protect_dashboard_and_api():
-    if request.endpoint in ("static", "sms_reply"):
+    if request.endpoint in ("static", "sms_reply", "healthz"):
         return None
     if is_authorized_request():
         return None
@@ -1176,7 +1176,7 @@ def sms_reply():
         detail = ", ".join(f"{label}: {value:g}" for label, value in segment_hours.items())
         resp.message(f"Got it - {hours:g} total hours logged for {week_of} ({detail}). Thanks!")
     elif hours is not None:
-        resp.message(f"Got it — {hours:.0f} hours logged for the week of {week_of}. Thanks!")
+        resp.message(f"Got it - {hours:.0f} hours logged for the week of {week_of}. Thanks!")
     else:
         template = split_week_reply_template(week_of)
         if template:
@@ -1452,6 +1452,10 @@ def export_monthly_xlsx():
 @app.route("/")
 def dashboard():
     return render_template("dashboard.html")
+
+@app.route("/healthz")
+def healthz():
+    return jsonify({"ok": True})
 
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=PORT)

@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: billable-hours-tracker
+    runtime: python
+    plan: starter
+    region: ohio
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    disk:
+      name: billable-hours-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE
+        sync: false
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: VALIDATE_TWILIO_WEBHOOKS
+        value: true
+      - key: DB_PATH
+        value: /data/hours.db
+      - key: REPORT_OUTPUT_DIR
+        value: /data/reports
+      - key: WEEKLY_PROMPT_UTC_HOUR
+        value: 15
+      - key: MONTHLY_REPORT_UTC_HOUR
+        value: 23
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: 0

@@ -45,7 +45,7 @@ Use `.env.production.example` as the deployment checklist.
 Required:
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
-- `TWILIO_PHONE`
+- `TWILIO_MESSAGING_SERVICE_SID` for the A2P-linked Messaging Service, or `TWILIO_PHONE` for direct number sending
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD`
 - `PUBLIC_BASE_URL`
@@ -116,7 +116,7 @@ This repo includes `render.yaml` for a Render Blueprint deploy.
 Render settings used by the Blueprint:
 - Service type: Web Service
 - Runtime: Python
-- Branch: `AS_branch1`
+- Branch: `main`
 - Plan: `starter`
 - Region: `ohio`
 - Health check path: `/healthz`
@@ -143,20 +143,20 @@ Use the actual mounted volume path from your host if it differs from `/data`.
 
 ### Deploy on Render
 
-1. Push `AS_branch1` to GitHub.
+1. Push `main` to GitHub.
 2. In Render, choose **New > Blueprint**.
 3. Connect the GitHub repo.
 4. Select the repo root `render.yaml`.
 5. Fill the `sync: false` environment variables in Render:
    - `TWILIO_ACCOUNT_SID`
    - `TWILIO_AUTH_TOKEN`
-   - `TWILIO_PHONE`
+   - `TWILIO_MESSAGING_SERVICE_SID` preferred for A2P, or `TWILIO_PHONE`
    - `ADMIN_PASSWORD`
    - `PUBLIC_BASE_URL`
    - `SENTRY_DSN` if using Sentry
 6. Deploy the service.
 7. After Render gives the live URL, set `PUBLIC_BASE_URL` to that exact URL.
-8. In Twilio, set the inbound webhook for the production number to:
+8. In Twilio, set the inbound webhook for the production number or Messaging Service to:
 
 ```text
 https://your-render-service.onrender.com/sms
@@ -167,7 +167,7 @@ Render services have an ephemeral filesystem by default, so the persistent disk 
 ## Smoke Test After Deploy
 
 1. Open `https://your-production-domain/healthz`
-2. Confirm it returns `{"ok": true}`
+2. Confirm it returns `"twilio_configured": true`
 3. Open the dashboard and confirm Basic Auth is required
 4. Add one internal test consultant number
 5. Send one manual weekly prompt

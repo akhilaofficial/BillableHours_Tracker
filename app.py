@@ -49,6 +49,7 @@ MESSAGE_TYPE_LABELS = {
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN  = os.environ.get("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE       = os.environ.get("TWILIO_PHONE")   # e.g. "+16175551234"
+TWILIO_MESSAGING_SERVICE_SID = os.environ.get("TWILIO_MESSAGING_SERVICE_SID")
 DB_PATH            = os.environ.get("DB_PATH", "hours.db")
 PORT               = int(os.environ.get("PORT", "8000"))
 CENTRAL_TIME       = ZoneInfo("America/Chicago")
@@ -360,9 +361,12 @@ def weekly_prompt_message(name: str, week_of: str):
         return (
             f"Hi {name}! Please send billable hours for {period}. "
             f"This week crosses months, so reply with: {template}. "
-            "Example: Apr 27-30=32; May 1-3=8"
+            "Example: Apr 27-30=32; May 1-3=8. Reply STOP to opt out or HELP for help."
         )
-    return f"Hi {name}! How many billable hours will you log for {period}? Reply with just a number, e.g. 40."
+    return (
+        f"Hi {name}! How many billable hours will you log for {period}? "
+        "Reply with just a number, e.g. 40. Reply STOP to opt out or HELP for help."
+    )
 
 def get_monthly_report_rows(month_value: str):
     start, end, label = month_bounds(month_value)
@@ -860,20 +864,29 @@ def replace_response_segments(consultant_id: int, week_of: str, segment_hours: d
             )
 
 def send_sms(to: str, body: str):
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        raise RuntimeError("Twilio is not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.")
+    if not TWILIO_PHONE and not TWILIO_MESSAGING_SERVICE_SID:
+        raise RuntimeError("Twilio is not configured. Set TWILIO_PHONE or TWILIO_MESSAGING_SERVICE_SID.")
+
     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-    return client.messages.create(
-        to=to,
-        from_=TWILIO_PHONE,
-        body=body
-    )
+    message_args = {"to": to, "body": body}
+    if TWILIO_MESSAGING_SERVICE_SID:
+        message_args["messaging_service_sid"] = TWILIO_MESSAGING_SERVICE_SID
+    else:
+        message_args["from_"] = TWILIO_PHONE
+    return client.messages.create(**message_args)
 
 def default_reminder_message(name: str, week_of: str):
     template = split_week_reply_template(week_of)
     if template:
-        return f"Hi {name}, reminder to send billable hours for {format_report_period(week_of)}. Reply with: {template}."
+        return (
+            f"Hi {name}, reminder to send billable hours for {format_report_period(week_of)}. "
+            f"Reply with: {template}. Reply STOP to opt out or HELP for help."
+        )
     return (
         f"Hi {name}, quick follow-up on your billable hours forecast for {format_report_period(week_of)}. "
-        "Please reply with the number of hours you expect to log."
+        "Please reply with the number of hours you expect to log. Reply STOP to opt out or HELP for help."
     )
 
 def log_message_attempt(consultant_id: int, week_of: str, message_type: str, body: str, status: str,
@@ -1455,7 +1468,18 @@ def dashboard():
 
 @app.route("/healthz")
 def healthz():
-    return jsonify({"ok": True})
+    twilio_ready = bool(
+        TWILIO_ACCOUNT_SID
+        and TWILIO_AUTH_TOKEN
+        and (TWILIO_PHONE or TWILIO_MESSAGING_SERVICE_SID)
+    )
+    return jsonify({
+        "ok": True,
+        "twilio_configured": twilio_ready,
+        "twilio_sender": "messaging_service" if TWILIO_MESSAGING_SERVICE_SID else "phone_number",
+        "webhook_validation_enabled": VALIDATE_TWILIO_WEBHOOKS,
+        "admin_auth_enabled": bool(ADMIN_PASSWORD),
+    }), 200 if twilio_ready else 503
 
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=PORT)

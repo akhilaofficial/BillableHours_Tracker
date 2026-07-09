@@ -644,7 +644,7 @@ def is_authorized_request():
 
 @app.before_request
 def protect_dashboard_and_api():
-    if request.endpoint in ("static", "sms_reply", "healthz"):
+    if request.endpoint in ("static", "sms_reply", "healthz", "sms_terms", "sms_privacy"):
         return None
     if is_authorized_request():
         return None
@@ -1465,6 +1465,14 @@ def export_monthly_xlsx():
 @app.route("/")
 def dashboard():
     return render_template("dashboard.html")
+
+@app.route("/sms-terms")
+def sms_terms():
+    return render_template("sms_terms.html")
+
+@app.route("/sms-privacy")
+def sms_privacy():
+    return render_template("sms_privacy.html")
 
 @app.route("/healthz")
 def healthz():

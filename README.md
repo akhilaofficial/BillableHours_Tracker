@@ -178,6 +178,23 @@ Render services have an ephemeral filesystem by default, so the persistent disk 
 10. Check Twilio logs for delivery errors
 11. Check Sentry for errors
 
+## A2P SMS Legal URLs
+
+Twilio A2P campaign review requires public URLs for SMS terms and SMS privacy disclosures.
+After deployment, use these app-hosted pages:
+
+```text
+https://your-production-domain/sms-terms
+https://your-production-domain/sms-privacy
+```
+
+For the Render service used by this project:
+
+```text
+https://billable-hours-tracker.onrender.com/sms-terms
+https://billable-hours-tracker.onrender.com/sms-privacy
+```
+
 ## Tests
 
 Run:

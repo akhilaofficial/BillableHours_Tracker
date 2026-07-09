@@ -1487,7 +1487,7 @@ def healthz():
         "twilio_sender": "messaging_service" if TWILIO_MESSAGING_SERVICE_SID else "phone_number",
         "webhook_validation_enabled": VALIDATE_TWILIO_WEBHOOKS,
         "admin_auth_enabled": bool(ADMIN_PASSWORD),
-    }), 200 if twilio_ready else 503
+    })
 
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=PORT)

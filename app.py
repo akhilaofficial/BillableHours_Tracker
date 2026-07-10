@@ -1518,8 +1518,6 @@ def sms_signup():
         errors.append("Name is required.")
     if not phone:
         errors.append("Mobile number is required.")
-    if not consent:
-        errors.append("You must check the SMS consent box to opt in.")
 
     if errors:
         return render_template(
@@ -1530,6 +1528,16 @@ def sms_signup():
             phone=request.form.get("phone") or "",
             submitted=False,
         ), 400
+
+    if not consent:
+        return render_template(
+            "sms_signup.html",
+            consent_text=consent_text,
+            submitted=True,
+            sms_opted_in=False,
+            name=name,
+            phone=phone,
+        )
 
     with get_db() as db:
         existing_phone = db.execute("SELECT id FROM consultants WHERE phone = ?", (phone,)).fetchone()
@@ -1565,7 +1573,14 @@ def sms_signup():
             ),
         )
 
-    return render_template("sms_signup.html", consent_text=consent_text, submitted=True, name=name, phone=phone)
+    return render_template(
+        "sms_signup.html",
+        consent_text=consent_text,
+        submitted=True,
+        sms_opted_in=True,
+        name=name,
+        phone=phone,
+    )
 
 @app.route("/healthz")
 def healthz():

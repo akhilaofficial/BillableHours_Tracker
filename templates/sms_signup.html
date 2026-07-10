@@ -3,24 +3,34 @@
 {% block content %}
   <h1>EPI-USE America, Inc. SMS Signup</h1>
   <p>
-    Use this form to opt in to recurring SMS messages for EPI-USE billable-hours
-    forecasting and follow-up reminders.
+    Use this form to manage optional SMS reminders for EPI-USE billable-hours
+    forecasting. SMS consent is optional and is not required to participate in
+    the Billable Hours Tracker process.
   </p>
 
   <h2>Signup Flow</h2>
   <p>
-    Enter your name and mobile phone number, review the SMS consent language,
-    check the unchecked consent box, and submit the form. Your number will be
-    added to the Billable Hours Tracker consultant list after consent is recorded.
+    Enter your name and mobile phone number, review the optional SMS consent
+    language, choose whether to check the unchecked SMS consent box, and submit
+    the form. Only users who check the box will be enrolled in SMS reminders.
   </p>
 
   {% if submitted %}
     <div class="success">
-      <strong>SMS opt-in received.</strong>
-      <p>
-        {{ name }} at {{ phone }} is opted in to EPI-USE America, Inc. SMS
-        messages for billable-hours forecasting and reminders.
-      </p>
+      {% if sms_opted_in %}
+        <strong>SMS opt-in received.</strong>
+        <p>
+          {{ name }} at {{ phone }} is opted in to EPI-USE America, Inc. SMS
+          messages for billable-hours forecasting and reminders.
+        </p>
+      {% else %}
+        <strong>Preference submitted.</strong>
+        <p>
+          No SMS opt-in was recorded because the SMS consent box was not checked.
+          You can still participate in the Billable Hours Tracker process without
+          receiving SMS reminders.
+        </p>
+      {% endif %}
     </div>
   {% else %}
     {% if errors %}
@@ -42,7 +52,7 @@
       <input id="phone" name="phone" type="tel" value="{{ phone or '' }}" placeholder="+1 555 555 0100" required>
 
       <div class="checkbox-row">
-        <input id="sms_consent" name="sms_consent" type="checkbox" value="yes" required>
+        <input id="sms_consent" name="sms_consent" type="checkbox" value="yes">
         <label for="sms_consent">
           {{ consent_text }}
           Terms: <a href="/sms-terms">https://billable-hours-tracker.onrender.com/sms-terms</a>.
@@ -50,7 +60,7 @@
         </label>
       </div>
 
-      <button type="submit">Opt In to SMS</button>
+      <button type="submit">Submit SMS Preference</button>
     </form>
   {% endif %}
 {% endblock %}

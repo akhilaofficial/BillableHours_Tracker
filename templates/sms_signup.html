@@ -1,118 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EPI-USE America, Inc. SMS Signup</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      color: #0b1b3f;
-      background: #f6f8fb;
-      line-height: 1.6;
-    }
-    main {
-      width: min(860px, calc(100% - 32px));
-      margin: 48px auto;
-      padding: 32px;
-      background: #fff;
-      border: 1px solid #dce5f2;
-      border-radius: 8px;
-    }
-    h1 { margin-top: 0; line-height: 1.2; }
-    label { display: block; margin-top: 18px; font-weight: 700; }
-    input[type="text"],
-    input[type="tel"] {
-      width: 100%;
-      margin-top: 6px;
-      padding: 12px;
-      border: 1px solid #b8c8dd;
-      border-radius: 6px;
-      font: inherit;
-      box-sizing: border-box;
-    }
-    .checkbox-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .checkbox-row input { margin-top: 6px; }
-    .checkbox-row label { margin: 0; font-weight: 400; }
-    button {
-      margin-top: 24px;
-      padding: 12px 18px;
-      border: 0;
-      border-radius: 6px;
-      color: #fff;
-      background: #155eef;
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .success {
-      padding: 14px 16px;
-      border: 1px solid #9fdab8;
-      border-radius: 6px;
-      background: #e9fbf0;
-    }
-    .errors {
-      padding: 14px 16px;
-      border: 1px solid #f0aaa8;
-      border-radius: 6px;
-      background: #fff0f0;
-    }
-    a { color: #155eef; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>EPI-USE America, Inc. SMS Signup</h1>
-    <p>
-      Use this form to opt in to recurring SMS messages for EPI-USE
-      billable-hours forecasting and follow-up reminders.
-    </p>
+{% extends "sms_public_base.html" %}
+{% block title %}EPI-USE America, Inc. SMS Signup{% endblock %}
+{% block content %}
+  <h1>EPI-USE America, Inc. SMS Signup</h1>
+  <p>
+    Use this form to opt in to recurring SMS messages for EPI-USE billable-hours
+    forecasting and follow-up reminders.
+  </p>
 
-    {% if submitted %}
-      <div class="success">
-        <strong>SMS opt-in received.</strong>
-        <p>
-          {{ name }} at {{ phone }} is opted in to EPI-USE America, Inc. SMS
-          messages for billable-hours forecasting and reminders.
-        </p>
+  <h2>Signup Flow</h2>
+  <p>
+    Enter your name and mobile phone number, review the SMS consent language,
+    check the unchecked consent box, and submit the form. Your number will be
+    added to the Billable Hours Tracker consultant list after consent is recorded.
+  </p>
+
+  {% if submitted %}
+    <div class="success">
+      <strong>SMS opt-in received.</strong>
+      <p>
+        {{ name }} at {{ phone }} is opted in to EPI-USE America, Inc. SMS
+        messages for billable-hours forecasting and reminders.
+      </p>
+    </div>
+  {% else %}
+    {% if errors %}
+      <div class="errors">
+        <strong>Please fix the following:</strong>
+        <ul>
+          {% for error in errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
       </div>
-    {% else %}
-      {% if errors %}
-        <div class="errors">
-          <strong>Please fix the following:</strong>
-          <ul>
-            {% for error in errors %}
-              <li>{{ error }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-
-      <form method="post" action="/sms-signup">
-        <label for="name">Full name</label>
-        <input id="name" name="name" type="text" value="{{ name or '' }}" required>
-
-        <label for="phone">Mobile phone number</label>
-        <input id="phone" name="phone" type="tel" value="{{ phone or '' }}" placeholder="+1 555 555 0100" required>
-
-        <div class="checkbox-row">
-          <input id="sms_consent" name="sms_consent" type="checkbox" value="yes" required>
-          <label for="sms_consent">
-            {{ consent_text }}
-            Terms: <a href="/sms-terms">https://billable-hours-tracker.onrender.com/sms-terms</a>.
-            Privacy: <a href="/sms-privacy">https://billable-hours-tracker.onrender.com/sms-privacy</a>.
-          </label>
-        </div>
-
-        <button type="submit">Opt In to SMS</button>
-      </form>
     {% endif %}
-  </main>
-</body>
-</html>
+
+    <form method="post" action="/sms-signup">
+      <label for="name">Full name</label>
+      <input id="name" name="name" type="text" value="{{ name or '' }}" required>
+
+      <label for="phone">Mobile phone number</label>
+      <input id="phone" name="phone" type="tel" value="{{ phone or '' }}" placeholder="+1 555 555 0100" required>
+
+      <div class="checkbox-row">
+        <input id="sms_consent" name="sms_consent" type="checkbox" value="yes" required>
+        <label for="sms_consent">
+          {{ consent_text }}
+          Terms: <a href="/sms-terms">https://billable-hours-tracker.onrender.com/sms-terms</a>.
+          Privacy: <a href="/sms-privacy">https://billable-hours-tracker.onrender.com/sms-privacy</a>.
+        </label>
+      </div>
+
+      <button type="submit">Opt In to SMS</button>
+    </form>
+  {% endif %}
+{% endblock %}

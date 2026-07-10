@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}EPI-USE America, Inc. SMS Program{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #0b1b3f;
+      background: linear-gradient(180deg, #f6f8fb 0%, #edf3f8 100%);
+      line-height: 1.6;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      background: #142f5f;
+      color: #fff;
+    }
+    .logo {
+      width: 230px;
+      max-width: 44vw;
+      height: auto;
+      display: block;
+      padding: 4px 8px;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .brand-kicker {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .brand-title {
+      margin: 2px 0 0;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+    }
+    main {
+      width: min(900px, calc(100% - 32px));
+      margin: 40px auto;
+      padding: 32px;
+      background: #fff;
+      border: 1px solid #dce5f2;
+      border-radius: 8px;
+      box-shadow: 0 20px 50px rgba(11, 27, 63, 0.1);
+    }
+    h1 { margin-top: 0; line-height: 1.2; }
+    h2 { margin-top: 28px; }
+    label { display: block; margin-top: 18px; font-weight: 700; }
+    input[type="text"],
+    input[type="tel"] {
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px;
+      border: 1px solid #b8c8dd;
+      border-radius: 6px;
+      font: inherit;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .checkbox-row input { margin-top: 6px; }
+    .checkbox-row label { margin: 0; font-weight: 400; }
+    button {
+      margin-top: 24px;
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 6px;
+      color: #fff;
+      background: #ce181e;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .success {
+      padding: 14px 16px;
+      border: 1px solid #9fdab8;
+      border-radius: 6px;
+      background: #e9fbf0;
+    }
+    .errors {
+      padding: 14px 16px;
+      border: 1px solid #f0aaa8;
+      border-radius: 6px;
+      background: #fff0f0;
+    }
+    code {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #eef4ff;
+      font-size: 1rem;
+    }
+    a { color: #155eef; }
+    @media (max-width: 640px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      main { margin: 24px auto; padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <img class="logo" src="{{ url_for('static', filename='logo.jpg') }}" alt="EPI-USE">
+    <div>
+      <p class="brand-kicker">A Member of Group Elephant</p>
+      <p class="brand-title">Billable Hours Tracker</p>
+    </div>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

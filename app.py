@@ -1532,11 +1532,23 @@ def sms_signup():
         ), 400
 
     with get_db() as db:
-        existing = db.execute("SELECT id FROM consultants WHERE phone = ?", (phone,)).fetchone()
-        if existing:
-            db.execute("UPDATE consultants SET name = ? WHERE phone = ?", (name, phone))
-        else:
-            db.execute("INSERT INTO consultants (name, phone) VALUES (?, ?)", (name, phone))
+        existing_phone = db.execute("SELECT id FROM consultants WHERE phone = ?", (phone,)).fetchone()
+        existing_name = db.execute("SELECT id FROM consultants WHERE lower(name) = lower(?)", (name,)).fetchone()
+        if existing_phone:
+            errors.append("That mobile number is already registered.")
+        if existing_name:
+            errors.append("That name is already registered.")
+        if errors:
+            return render_template(
+                "sms_signup.html",
+                consent_text=consent_text,
+                errors=errors,
+                name=name,
+                phone=request.form.get("phone") or "",
+                submitted=False,
+            ), 409
+
+        db.execute("INSERT INTO consultants (name, phone) VALUES (?, ?)", (name, phone))
         db.execute(
             """
             INSERT INTO opt_in_log (name, phone, consent_text, source, ip_address, user_agent, created_at)

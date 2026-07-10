@@ -644,7 +644,16 @@ def is_authorized_request():
 
 @app.before_request
 def protect_dashboard_and_api():
-    if request.endpoint in ("static", "sms_reply", "healthz", "sms_terms", "sms_privacy", "sms_opt_in"):
+    public_endpoints = {
+        "static",
+        "sms_reply",
+        "healthz",
+        "sms_terms",
+        "sms_privacy",
+        "sms_opt_in",
+        "sms_signup",
+    }
+    if request.endpoint in public_endpoints:
         return None
     if is_authorized_request():
         return None
@@ -789,6 +798,17 @@ def init_db():
             CREATE TABLE IF NOT EXISTS app_settings (
                 key   TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS opt_in_log (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                name          TEXT NOT NULL,
+                phone         TEXT NOT NULL,
+                consent_text  TEXT NOT NULL,
+                source        TEXT NOT NULL,
+                ip_address    TEXT,
+                user_agent    TEXT,
+                created_at    TEXT NOT NULL
             );
         """)
         ensure_week_metadata_columns(db, "responses")
@@ -1477,6 +1497,63 @@ def sms_privacy():
 @app.route("/sms-opt-in")
 def sms_opt_in():
     return render_template("sms_opt_in.html")
+
+@app.route("/sms-signup", methods=["GET", "POST"])
+def sms_signup():
+    consent_text = (
+        "I agree to receive recurring SMS messages from EPI-USE America, Inc. "
+        "for billable-hours forecasting and follow-up reminders. Message frequency varies, "
+        "typically weekly. Message and data rates may apply. Reply STOP to opt out or HELP for help."
+    )
+
+    if request.method == "GET":
+        return render_template("sms_signup.html", consent_text=consent_text, submitted=False)
+
+    name = (request.form.get("name") or "").strip()
+    phone = normalize_phone(request.form.get("phone") or "")
+    consent = request.form.get("sms_consent") == "yes"
+
+    errors = []
+    if not name:
+        errors.append("Name is required.")
+    if not phone:
+        errors.append("Mobile number is required.")
+    if not consent:
+        errors.append("You must check the SMS consent box to opt in.")
+
+    if errors:
+        return render_template(
+            "sms_signup.html",
+            consent_text=consent_text,
+            errors=errors,
+            name=name,
+            phone=request.form.get("phone") or "",
+            submitted=False,
+        ), 400
+
+    with get_db() as db:
+        existing = db.execute("SELECT id FROM consultants WHERE phone = ?", (phone,)).fetchone()
+        if existing:
+            db.execute("UPDATE consultants SET name = ? WHERE phone = ?", (name, phone))
+        else:
+            db.execute("INSERT INTO consultants (name, phone) VALUES (?, ?)", (name, phone))
+        db.execute(
+            """
+            INSERT INTO opt_in_log (name, phone, consent_text, source, ip_address, user_agent, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                name,
+                phone,
+                consent_text,
+                "sms_signup",
+                request.headers.get("X-Forwarded-For", request.remote_addr),
+                request.headers.get("User-Agent"),
+                utc_now_iso(),
+            ),
+        )
+
+    return render_template("sms_signup.html", consent_text=consent_text, submitted=True, name=name, phone=phone)
 
 @app.route("/healthz")
 def healthz():

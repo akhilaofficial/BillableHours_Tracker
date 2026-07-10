@@ -186,6 +186,7 @@ After deployment, use these app-hosted pages:
 ```text
 https://your-production-domain/sms-terms
 https://your-production-domain/sms-privacy
+https://your-production-domain/sms-opt-in
 ```
 
 For the Render service used by this project:
@@ -193,6 +194,7 @@ For the Render service used by this project:
 ```text
 https://billable-hours-tracker.onrender.com/sms-terms
 https://billable-hours-tracker.onrender.com/sms-privacy
+https://billable-hours-tracker.onrender.com/sms-opt-in
 ```
 
 ## Tests

@@ -644,7 +644,7 @@ def is_authorized_request():
 
 @app.before_request
 def protect_dashboard_and_api():
-    if request.endpoint in ("static", "sms_reply", "healthz", "sms_terms", "sms_privacy"):
+    if request.endpoint in ("static", "sms_reply", "healthz", "sms_terms", "sms_privacy", "sms_opt_in"):
         return None
     if is_authorized_request():
         return None
@@ -1473,6 +1473,10 @@ def sms_terms():
 @app.route("/sms-privacy")
 def sms_privacy():
     return render_template("sms_privacy.html")
+
+@app.route("/sms-opt-in")
+def sms_opt_in():
+    return render_template("sms_opt_in.html")
 
 @app.route("/healthz")
 def healthz():

@@ -1224,7 +1224,16 @@ def sms_reply():
 @app.route("/api/consultants", methods=["GET"])
 def list_consultants():
     with get_db() as db:
-        rows = db.execute("SELECT * FROM consultants ORDER BY name").fetchall()
+        rows = db.execute(
+            """
+            SELECT c.*,
+                   MAX(o.created_at) AS sms_opted_in_at
+            FROM consultants c
+            LEFT JOIN opt_in_log o ON o.phone = c.phone
+            GROUP BY c.id
+            ORDER BY c.name
+            """
+        ).fetchall()
     return jsonify([dict(r) for r in rows])
 
 @app.route("/api/consultants", methods=["POST"])

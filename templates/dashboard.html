@@ -393,6 +393,30 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
+  .opt-in-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.45rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .opt-in-yes {
+    color: #0b6b3a;
+    background: rgba(21, 128, 61, 0.12);
+    border: 1px solid rgba(21, 128, 61, 0.2);
+  }
+
+  .opt-in-no {
+    color: #8a3d00;
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.24);
+  }
+
   .btn-danger {
     padding: 0.45rem 0.75rem;
     border-radius: var(--radius-sm);
@@ -1079,6 +1103,9 @@
         <div>
           <div class="consultant-name">${c.name}</div>
           <div class="consultant-phone">${c.phone}</div>
+          <div class="opt-in-badge ${c.sms_opted_in_at ? 'opt-in-yes' : 'opt-in-no'}">
+            ${c.sms_opted_in_at ? 'SMS opted in' : 'No SMS opt-in'}
+          </div>
         </div>
         <button class="btn btn-danger" onclick="removeConsultant(${c.id})">Remove</button>
       </div>

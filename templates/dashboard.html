@@ -368,13 +368,13 @@
   .consultant-list {
     display: grid;
     gap: 0.8rem;
+    max-height: 420px;
+    overflow: auto;
+    padding-right: 0.2rem;
   }
 
   .consultant-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    display: block;
     padding: 1rem 1.05rem;
     border-radius: 18px;
     background: linear-gradient(180deg, rgba(237, 243, 248, 0.9), rgba(255, 255, 255, 0.94));
@@ -861,6 +861,7 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <button class="btn btn-secondary" onclick="window.location='/sms-management'">SMS Management</button>
       <button class="btn btn-secondary" onclick="exportWeeklyCSV()">Export Weekly CSV</button>
       <button class="btn btn-secondary" onclick="exportMonthlyCSV()">Export Monthly CSV</button>
       <button class="btn btn-primary" onclick="sendNow()">Send Texts Now</button>
@@ -1119,23 +1120,22 @@
             ${smsStatusLabel(c)}
           </div>
         </div>
-        <button class="btn btn-danger" onclick="removeConsultant(${c.id})">Remove</button>
       </div>
     `).join('');
   }
 
   function isSmsOptedOut(c) {
-    return c.sms_opted_out_at && (!c.sms_opted_in_at || c.sms_opted_out_at > c.sms_opted_in_at);
+    return c.sms_status === 'opted_out';
   }
 
   function smsStatusLabel(c) {
-    if (isSmsOptedOut(c)) return 'SMS opted out';
-    return c.sms_opted_in_at ? 'SMS opted in' : 'No SMS opt-in';
+    return c.sms_status_label ?? (c.sms_opted_in_at ? 'SMS opted in' : 'No SMS opt-in');
   }
 
   function smsStatusClass(c) {
-    if (isSmsOptedOut(c)) return 'opt-in-out';
-    return c.sms_opted_in_at ? 'opt-in-yes' : 'opt-in-no';
+    if (c.sms_status === 'opted_out') return 'opt-in-out';
+    if (c.sms_status === 'opted_in') return 'opt-in-yes';
+    return 'opt-in-no';
   }
 
   function renderWeekTabs() {

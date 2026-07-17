@@ -117,6 +117,35 @@ def normalize_phone(phone: str):
         digits = f"1{digits}"
     return f"+{digits}"
 
+def parse_iso_timestamp(value: str):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+def sms_status_from_dates(opted_in_at: str, opted_out_at: str):
+    opted_in_dt = parse_iso_timestamp(opted_in_at)
+    opted_out_dt = parse_iso_timestamp(opted_out_at)
+    if opted_out_dt and (not opted_in_dt or opted_out_dt >= opted_in_dt):
+        return {
+            "sms_status": "opted_out",
+            "sms_status_label": "SMS opted out",
+            "sms_active": False,
+        }
+    if opted_in_dt:
+        return {
+            "sms_status": "opted_in",
+            "sms_status_label": "SMS opted in",
+            "sms_active": True,
+        }
+    return {
+        "sms_status": "not_opted_in",
+        "sms_status_label": "No SMS opt-in",
+        "sms_active": False,
+    }
+
 def client_ip_address():
     forwarded_for = request.headers.get("X-Forwarded-For", "")
     if forwarded_for:
@@ -1103,7 +1132,7 @@ def is_sms_active(consultant):
             "SELECT MAX(created_at) AS value FROM opt_out_log WHERE phone = ?",
             (consultant["phone"],)
         ).fetchone()["value"]
-    return bool(opted_in and (not opted_out or opted_in > opted_out))
+    return sms_status_from_dates(opted_in, opted_out)["sms_active"]
 
 def get_consultant_by_id(cid: int):
     with get_db() as db:
@@ -1156,11 +1185,11 @@ def get_weekly_reporting_status(week_of: str):
         sms_state = sms_state_by_consultant.get(consultant["id"], {})
         opted_in_at = sms_state.get("opted_in_at")
         opted_out_at = sms_state.get("opted_out_at")
-        is_opted_out = opted_out_at and (not opted_in_at or opted_out_at > opted_in_at)
+        sms_status = sms_status_from_dates(opted_in_at, opted_out_at)
         if response:
             status_key = "replied"
             status_label = "Replied"
-        elif is_opted_out:
+        elif sms_status["sms_status"] == "opted_out":
             status_key = "opted_out"
             status_label = "SMS opted out"
         elif message and message["status"] == "failed":
@@ -1193,6 +1222,7 @@ def get_weekly_reporting_status(week_of: str):
             "last_error_code": message["error_code"] if message else None,
             "sms_opted_in_at": opted_in_at,
             "sms_opted_out_at": opted_out_at,
+            **sms_status,
         })
     return items
 
@@ -1430,7 +1460,37 @@ def list_consultants():
             ORDER BY c.name
             """
         ).fetchall()
-    return jsonify([dict(r) for r in rows])
+    consultants = []
+    for row in rows:
+        item = dict(row)
+        item.update(sms_status_from_dates(item.get("sms_opted_in_at"), item.get("sms_opted_out_at")))
+        consultants.append(item)
+    return jsonify(consultants)
+
+@app.route("/api/sms-status", methods=["GET"])
+def sms_status_report():
+    with get_db() as db:
+        rows = db.execute(
+            """
+            SELECT c.id,
+                   c.name,
+                   c.phone,
+                   MAX(oi.created_at) AS sms_opted_in_at,
+                   MAX(oo.created_at) AS sms_opted_out_at,
+                   MAX(oi.source) AS last_opt_in_source
+            FROM consultants c
+            LEFT JOIN opt_in_log oi ON oi.phone = c.phone
+            LEFT JOIN opt_out_log oo ON oo.phone = c.phone
+            GROUP BY c.id
+            ORDER BY c.name
+            """
+        ).fetchall()
+    items = []
+    for row in rows:
+        item = dict(row)
+        item.update(sms_status_from_dates(item.get("sms_opted_in_at"), item.get("sms_opted_out_at")))
+        items.append(item)
+    return jsonify(items)
 
 @app.route("/api/consultants", methods=["POST"])
 def add_consultant():
@@ -1696,6 +1756,10 @@ def export_monthly_xlsx():
 @app.route("/")
 def dashboard():
     return render_template("dashboard.html")
+
+@app.route("/sms-management")
+def sms_management():
+    return render_template("sms_management.html")
 
 @app.route("/sms-terms")
 def sms_terms():

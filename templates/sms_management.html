@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EPI-USE SMS Management</title>
+  <style>
+    :root {
+      --navy: #09275a;
+      --red: #e3222a;
+      --ink: #061b42;
+      --muted: #647895;
+      --line: #d8e4f2;
+      --soft: #f4f8fc;
+      --green: #0b6b3a;
+      --shadow: 0 20px 60px rgba(9, 39, 90, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg, #f7fbff 0%, #edf4fa 100%);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 24px 32px;
+      background: var(--navy);
+      color: #fff;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .logo {
+      width: 230px;
+      max-width: 44vw;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .kicker {
+      color: rgba(255,255,255,0.72);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .title {
+      margin-top: 2px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      font-weight: 900;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn-danger {
+      border-color: rgba(227,34,42,0.22);
+      color: var(--red);
+      background: rgba(227,34,42,0.08);
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 32px auto 56px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 34px;
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(135deg, #071f50 0%, #173d73 58%, #7ba8c4 100%);
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 720px;
+      margin: 14px 0 0;
+      color: rgba(255,255,255,0.86);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .stat, .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 22px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 2.4rem;
+      font-weight: 900;
+    }
+
+    .panel {
+      margin-top: 24px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      background: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .chip.active {
+      color: #fff;
+      background: var(--navy);
+      border-color: var(--navy);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 15px 18px;
+      border-bottom: 1px solid #edf2f7;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      background: #f8fbfe;
+    }
+
+    .mono {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .badge-opted_in {
+      color: var(--green);
+      background: rgba(21, 128, 61, 0.12);
+    }
+
+    .badge-opted_out {
+      color: #8f1117;
+      background: rgba(206, 24, 30, 0.1);
+    }
+
+    .badge-not_opted_in {
+      color: #8a3d00;
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    .empty {
+      padding: 28px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    @media (max-width: 820px) {
+      .topbar, .brand, .hero {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img class="logo" src="{{ url_for('static', filename='logo.jpg') }}" alt="EPI-USE logo">
+      <div>
+        <div class="kicker">A member of Group Elephant</div>
+        <div class="title">Billable Hours Tracker</div>
+      </div>
+    </div>
+    <a class="btn" href="/">Back to Dashboard</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="kicker">SMS Administration</div>
+        <h1>Consultant SMS Status</h1>
+        <p>Review who is opted in, who opted out, and who has not completed SMS consent. Remove consultants from the roster here instead of crowding the main dashboard.</p>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="stat-label">SMS Opted In</div>
+        <div class="stat-value" id="count-opted-in">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">SMS Opted Out</div>
+        <div class="stat-value" id="count-opted-out">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">No SMS Opt-In</div>
+        <div class="stat-value" id="count-no-optin">0</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="kicker" style="color: var(--red)">Roster</div>
+          <h2 style="margin: 4px 0 0">SMS Consent Overview</h2>
+        </div>
+        <div class="filters" id="filters"></div>
+      </div>
+      <div id="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Status</th>
+              <th>Opted In</th>
+              <th>Opted Out</th>
+              <th>Source</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="7" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let rows = [];
+    let activeFilter = 'all';
+    const filters = [
+      ['all', 'All'],
+      ['opted_in', 'SMS opted in'],
+      ['opted_out', 'SMS opted out'],
+      ['not_opted_in', 'No opt-in']
+    ];
+
+    function formatTime(value) {
+      if (!value) return '-';
+      return value.slice(0, 16).replace('T', ' ');
+    }
+
+    async function load() {
+      const res = await fetch('/api/sms-status');
+      rows = await res.json();
+      render();
+    }
+
+    function render() {
+      document.getElementById('count-opted-in').textContent = rows.filter(r => r.sms_status === 'opted_in').length;
+      document.getElementById('count-opted-out').textContent = rows.filter(r => r.sms_status === 'opted_out').length;
+      document.getElementById('count-no-optin').textContent = rows.filter(r => r.sms_status === 'not_opted_in').length;
+
+      document.getElementById('filters').innerHTML = filters.map(([key, label]) => `
+        <button class="chip ${activeFilter === key ? 'active' : ''}" onclick="setFilter('${key}')">${label}</button>
+      `).join('');
+
+      const filtered = activeFilter === 'all' ? rows : rows.filter(r => r.sms_status === activeFilter);
+      const tbody = document.getElementById('rows');
+      if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">No consultants match this filter.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => `
+        <tr>
+          <td><strong>${escapeHtml(r.name)}</strong></td>
+          <td class="mono">${escapeHtml(r.phone)}</td>
+          <td><span class="badge badge-${r.sms_status}">${r.sms_status_label}</span></td>
+          <td class="mono">${formatTime(r.sms_opted_in_at)}</td>
+          <td class="mono">${formatTime(r.sms_opted_out_at)}</td>
+          <td class="mono">${escapeHtml(r.last_opt_in_source ?? '-')}</td>
+          <td><button class="btn btn-danger" onclick="removeConsultant(${r.id}, '${escapeJs(r.name)}')">Remove</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function setFilter(filter) {
+      activeFilter = filter;
+      render();
+    }
+
+    function escapeJs(value) {
+      return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    async function removeConsultant(id, name) {
+      if (!confirm(`Remove ${name} from the roster? This removes their dashboard record but keeps SMS audit logs.`)) return;
+      const res = await fetch(`/api/consultants/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        alert('Could not remove consultant.');
+        return;
+      }
+      rows = rows.filter(r => r.id !== id);
+      render();
+    }
+
+    load();
+  </script>
+</body>
+</html>

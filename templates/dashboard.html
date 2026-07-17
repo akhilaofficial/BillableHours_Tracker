@@ -622,6 +622,11 @@
     color: #8d2323;
   }
 
+  .status-opted_out {
+    background: rgba(206, 24, 30, 0.1);
+    color: #8f1117;
+  }
+
   .action-stack {
     display: flex;
     flex-wrap: wrap;
@@ -1009,6 +1014,7 @@
     { key: 'pending', label: 'No reply' },
     { key: 'failed', label: 'Send failed' },
     { key: 'replied', label: 'Replied' },
+    { key: 'opted_out', label: 'SMS opted out' },
     { key: 'needs_follow_up', label: 'Needs follow-up' }
   ];
 
@@ -1174,9 +1180,11 @@
         <td class="muted-cell">${r.last_error ? `${r.last_error_code ? `[${r.last_error_code}] ` : ''}${r.last_error}` : '-'}</td>
         <td>
           <div class="action-stack">
-            <button class="btn btn-outline btn-small" type="button" onclick="openMessageModal(${r.consultant_id}, '${escapeJs(r.name)}', '${escapeJs(r.phone)}')">
-              ${r.status === 'replied' ? 'Message Again' : (r.status === 'failed' ? 'Retry' : 'Send Reminder')}
-            </button>
+            ${r.status === 'opted_out'
+              ? '<span class="muted-cell">Opted out</span>'
+              : `<button class="btn btn-outline btn-small" type="button" onclick="openMessageModal(${r.consultant_id}, '${escapeJs(r.name)}', '${escapeJs(r.phone)}')">
+                  ${r.status === 'replied' ? 'Message Again' : (r.status === 'failed' ? 'Retry' : 'Send Reminder')}
+                </button>`}
           </div>
         </td>
       </tr>

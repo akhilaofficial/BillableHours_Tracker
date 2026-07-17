@@ -159,6 +159,33 @@ def record_signup_attempt(db, name: str, phone: str, status: str, reason: str = 
         ),
     )
 
+def backfill_sms_command_responses(db):
+    """Treat old STOP-like rows saved as responses as opt-out audit records."""
+    placeholders = ",".join("?" for _ in OPT_OUT_KEYWORDS)
+    db.execute(
+        f"""
+        INSERT INTO opt_out_log (consultant_id, name, phone, keyword, raw_reply, created_at)
+        SELECT c.id,
+               c.name,
+               c.phone,
+               UPPER(REPLACE(r.raw_reply, ' ', '')),
+               r.raw_reply,
+               r.received_at
+        FROM responses r
+        JOIN consultants c ON c.id = r.consultant_id
+        WHERE r.hours IS NULL
+          AND UPPER(REPLACE(r.raw_reply, ' ', '')) IN ({placeholders})
+          AND NOT EXISTS (
+              SELECT 1
+              FROM opt_out_log oo
+              WHERE oo.phone = c.phone
+                AND oo.raw_reply = r.raw_reply
+                AND oo.created_at = r.received_at
+          )
+        """,
+        tuple(OPT_OUT_KEYWORDS),
+    )
+
 def parse_hours(text: str):
     """Extract a number from a free-form reply like '32', 'about 40', '~35.5'."""
     match = re.search(r'\d+(\.\d+)?', text)
@@ -890,6 +917,7 @@ def init_db():
         ensure_week_metadata_columns(db, "sent_log")
         ensure_week_metadata_columns(db, "message_log")
         ensure_message_log_error_code_column(db)
+        backfill_sms_command_responses(db)
         consultants = db.execute("SELECT id, phone FROM consultants").fetchall()
         for consultant in consultants:
             normalized_phone = normalize_phone(consultant["phone"])
@@ -1106,16 +1134,35 @@ def get_weekly_reporting_status(week_of: str):
             """,
             (week_of,)
         ).fetchall()
+        sms_states = db.execute(
+            """
+            SELECT c.id AS consultant_id,
+                   MAX(oi.created_at) AS opted_in_at,
+                   MAX(oo.created_at) AS opted_out_at
+            FROM consultants c
+            LEFT JOIN opt_in_log oi ON oi.phone = c.phone
+            LEFT JOIN opt_out_log oo ON oo.phone = c.phone
+            GROUP BY c.id
+            """
+        ).fetchall()
 
     responses_by_consultant = {row["consultant_id"]: dict(row) for row in responses}
     messages_by_consultant = {row["consultant_id"]: dict(row) for row in messages}
+    sms_state_by_consultant = {row["consultant_id"]: dict(row) for row in sms_states}
     items = []
     for consultant in consultants:
         response = responses_by_consultant.get(consultant["id"])
         message = messages_by_consultant.get(consultant["id"])
+        sms_state = sms_state_by_consultant.get(consultant["id"], {})
+        opted_in_at = sms_state.get("opted_in_at")
+        opted_out_at = sms_state.get("opted_out_at")
+        is_opted_out = opted_out_at and (not opted_in_at or opted_out_at > opted_in_at)
         if response:
             status_key = "replied"
             status_label = "Replied"
+        elif is_opted_out:
+            status_key = "opted_out"
+            status_label = "SMS opted out"
         elif message and message["status"] == "failed":
             status_key = "failed"
             status_label = "Failed to send"
@@ -1144,6 +1191,8 @@ def get_weekly_reporting_status(week_of: str):
             "last_message_at": message["sent_at"] if message else None,
             "last_error": message["error_message"] if message else None,
             "last_error_code": message["error_code"] if message else None,
+            "sms_opted_in_at": opted_in_at,
+            "sms_opted_out_at": opted_out_at,
         })
     return items
 

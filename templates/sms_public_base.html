@@ -75,6 +75,12 @@
       font-weight: 900;
     }
 
+    .top-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .top-link {
       padding: 10px 16px;
       border: 1px solid rgba(255,255,255,0.22);
@@ -323,7 +329,7 @@
         flex-direction: column;
       }
 
-      .top-link { display: none; }
+      .top-links { display: none; }
 
       .hero,
       .grid {
@@ -345,7 +351,10 @@
         <p class="brand-title">Billable Hours Tracker</p>
       </div>
     </div>
-    <a class="top-link" href="/sms-terms">SMS Terms</a>
+    <nav class="top-links" aria-label="SMS pages">
+      <a class="top-link" href="/sms-signup">SMS Signup</a>
+      <a class="top-link" href="/sms-terms">SMS Terms</a>
+    </nav>
   </header>
   <main>
     {% block content %}{% endblock %}

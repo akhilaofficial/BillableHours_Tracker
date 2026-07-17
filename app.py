@@ -43,7 +43,14 @@ MESSAGE_TYPE_LABELS = {
     "reminder": "Reminder",
     "manual_follow_up": "Manual follow-up",
     "response": "Consultant reply",
+    "opt_in": "SMS opt-in",
+    "opt_out": "SMS opt-out",
+    "help": "SMS help",
 }
+
+OPT_IN_KEYWORDS = {"START", "YES", "UNSTOP"}
+OPT_OUT_KEYWORDS = {"STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "REVOKE", "OPTOUT"}
+HELP_KEYWORDS = {"HELP", "INFO"}
 
 # ─── Config (set these as environment variables) ───────────────────────────────
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
@@ -810,6 +817,17 @@ def init_db():
                 user_agent    TEXT,
                 created_at    TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS opt_out_log (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                consultant_id INTEGER,
+                name          TEXT,
+                phone         TEXT NOT NULL,
+                keyword       TEXT NOT NULL,
+                raw_reply     TEXT NOT NULL,
+                created_at    TEXT NOT NULL,
+                FOREIGN KEY (consultant_id) REFERENCES consultants(id)
+            );
         """)
         ensure_week_metadata_columns(db, "responses")
         ensure_week_metadata_columns(db, "sent_log")
@@ -990,6 +1008,18 @@ def send_consultant_message(consultant, body: str, week_of: str, message_type: s
     )
     return {"ok": False, "error": error_message}
 
+def is_sms_active(consultant):
+    with get_db() as db:
+        opted_in = db.execute(
+            "SELECT MAX(created_at) AS value FROM opt_in_log WHERE phone = ?",
+            (consultant["phone"],)
+        ).fetchone()["value"]
+        opted_out = db.execute(
+            "SELECT MAX(created_at) AS value FROM opt_out_log WHERE phone = ?",
+            (consultant["phone"],)
+        ).fetchone()["value"]
+    return bool(opted_in and (not opted_out or opted_in > opted_out))
+
 def get_consultant_by_id(cid: int):
     with get_db() as db:
         consultant = db.execute("SELECT * FROM consultants WHERE id = ?", (cid,)).fetchone()
@@ -1002,7 +1032,7 @@ def get_weekly_reporting_status(week_of: str):
             """
             SELECT consultant_id, hours, raw_reply, received_at
             FROM responses
-            WHERE week_of = ?
+            WHERE week_of = ? AND hours IS NOT NULL
             """,
             (week_of,)
         ).fetchall()
@@ -1117,6 +1147,8 @@ def send_weekly_texts():
     with get_db() as db:
         consultants = db.execute("SELECT * FROM consultants").fetchall()
     for c in consultants:
+        if not is_sms_active(c):
+            continue
         body = weekly_prompt_message(c["name"], week_of)
         result = send_consultant_message(c, body, week_of, "weekly_prompt")
         if result["ok"]:
@@ -1154,9 +1186,8 @@ def sms_reply():
 
     from_number = normalize_phone(request.form.get("From", "").strip())
     body        = request.form.get("Body", "").strip()
+    keyword     = re.sub(r"\s+", "", body.upper())
     week_of     = current_week_monday()
-    segment_hours = parse_segment_hours(body, week_of)
-    hours       = sum(segment_hours.values()) if segment_hours else parse_hours(body)
 
     resp = MessagingResponse()
 
@@ -1170,6 +1201,63 @@ def sms_reply():
         return str(resp)
 
     received_at = utc_now_iso()
+
+    if keyword in OPT_OUT_KEYWORDS:
+        with get_db() as db:
+            db.execute(
+                """
+                INSERT INTO opt_out_log (consultant_id, name, phone, keyword, raw_reply, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (consultant["id"], consultant["name"], consultant["phone"], keyword, body, received_at)
+            )
+        log_message_attempt(consultant["id"], week_of, "opt_out", body, "received", sent_at=received_at)
+        resp.message(
+            "You have opted out of EPI-USE America, Inc. billable-hours SMS reminders. "
+            "You will not receive more messages from this program. Reply START to resubscribe."
+        )
+        return str(resp)
+
+    if keyword in HELP_KEYWORDS:
+        log_message_attempt(consultant["id"], week_of, "help", body, "received", sent_at=received_at)
+        resp.message(
+            "EPI-USE America, Inc. SMS help: reply with your expected billable hours, e.g. 40. "
+            "Reply STOP to opt out. Msg/data rates may apply."
+        )
+        return str(resp)
+
+    if keyword in OPT_IN_KEYWORDS:
+        consent_text = (
+            "SMS opt-in received by keyword. EPI-USE America, Inc. sends billable-hours "
+            "forecasting SMS reminders. Msg frequency varies. Msg/data rates may apply. "
+            "Reply STOP to opt out or HELP for help."
+        )
+        with get_db() as db:
+            db.execute(
+                """
+                INSERT INTO opt_in_log (name, phone, consent_text, source, ip_address, user_agent, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    consultant["name"],
+                    consultant["phone"],
+                    consent_text,
+                    "sms_keyword",
+                    request.headers.get("X-Forwarded-For", request.remote_addr),
+                    request.headers.get("User-Agent"),
+                    received_at,
+                ),
+            )
+        log_message_attempt(consultant["id"], week_of, "opt_in", body, "received", sent_at=received_at)
+        resp.message(
+            "EPI-USE America, Inc.: You are opted in for billable-hours SMS reminders. "
+            "Msg frequency varies. Msg/data rates may apply. Reply HELP for help. Reply STOP to opt out."
+        )
+        return str(resp)
+
+    segment_hours = parse_segment_hours(body, week_of)
+    hours = sum(segment_hours.values()) if segment_hours else parse_hours(body)
+
     with get_db() as db:
         period = reporting_period_parts(week_of)
         db.execute(
@@ -1227,9 +1315,11 @@ def list_consultants():
         rows = db.execute(
             """
             SELECT c.*,
-                   MAX(o.created_at) AS sms_opted_in_at
+                   MAX(o.created_at) AS sms_opted_in_at,
+                   MAX(oo.created_at) AS sms_opted_out_at
             FROM consultants c
             LEFT JOIN opt_in_log o ON o.phone = c.phone
+            LEFT JOIN opt_out_log oo ON oo.phone = c.phone
             GROUP BY c.id
             ORDER BY c.name
             """
@@ -1270,6 +1360,12 @@ def list_responses():
         """, (cutoff,)).fetchall()
     return jsonify([dict(r) for r in rows])
 
+@app.route("/api/responses/invalid", methods=["DELETE"])
+def remove_invalid_responses():
+    with get_db() as db:
+        cursor = db.execute("DELETE FROM responses WHERE hours IS NULL")
+    return jsonify({"ok": True, "removed": cursor.rowcount})
+
 @app.route("/api/reporting-status", methods=["GET"])
 def reporting_status():
     week_of = request.args.get("week_of", type=str) or current_week_monday()
@@ -1294,7 +1390,7 @@ def weekly_summary():
                        r.reporting_year,
                        r.reporting_week,
                        r.reporting_week_label,
-                       COUNT(r.id)    AS responses,
+                       COUNT(r.hours) AS responses,
                        SUM(r.hours)   AS total_hours,
                        AVG(r.hours)   AS avg_hours
                 FROM responses r
@@ -1311,9 +1407,9 @@ def weekly_summary():
                    r.reporting_year,
                    r.reporting_week,
                    r.reporting_week_label,
-                   COUNT(r.id)    AS responses,
-                   SUM(r.hours)   AS total_hours,
-                   AVG(r.hours)   AS avg_hours
+                       COUNT(r.hours) AS responses,
+                       SUM(r.hours)   AS total_hours,
+                       AVG(r.hours)   AS avg_hours
             FROM responses r
             WHERE r.week_of >= ?
             GROUP BY r.week_of

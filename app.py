@@ -51,6 +51,10 @@ MESSAGE_TYPE_LABELS = {
 OPT_IN_KEYWORDS = {"START", "YES", "UNSTOP"}
 OPT_OUT_KEYWORDS = {"STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "REVOKE", "OPTOUT"}
 HELP_KEYWORDS = {"HELP", "INFO"}
+SIGNUP_RATE_LIMIT_WINDOW_MINUTES = 30
+SIGNUP_MAX_ATTEMPTS_PER_IP = 5
+SIGNUP_MAX_ATTEMPTS_PER_PHONE = 3
+SIGNUP_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z .'-]{1,78}[A-Za-z.]$")
 
 # ─── Config (set these as environment variables) ───────────────────────────────
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
@@ -112,6 +116,48 @@ def normalize_phone(phone: str):
     if len(digits) == 10:
         digits = f"1{digits}"
     return f"+{digits}"
+
+def client_ip_address():
+    forwarded_for = request.headers.get("X-Forwarded-For", "")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.remote_addr or ""
+
+def signup_rate_limit_exceeded(db, ip_address: str, phone: str):
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=SIGNUP_RATE_LIMIT_WINDOW_MINUTES)).isoformat()
+    ip_attempts = db.execute(
+        "SELECT COUNT(*) AS count FROM sms_signup_attempts WHERE ip_address = ? AND created_at >= ?",
+        (ip_address, cutoff),
+    ).fetchone()["count"]
+    if ip_attempts >= SIGNUP_MAX_ATTEMPTS_PER_IP:
+        return True
+
+    if phone:
+        phone_attempts = db.execute(
+            "SELECT COUNT(*) AS count FROM sms_signup_attempts WHERE phone = ? AND created_at >= ?",
+            (phone, cutoff),
+        ).fetchone()["count"]
+        if phone_attempts >= SIGNUP_MAX_ATTEMPTS_PER_PHONE:
+            return True
+
+    return False
+
+def record_signup_attempt(db, name: str, phone: str, status: str, reason: str = ""):
+    db.execute(
+        """
+        INSERT INTO sms_signup_attempts (name, phone, ip_address, user_agent, status, reason, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            name,
+            phone,
+            client_ip_address(),
+            request.headers.get("User-Agent"),
+            status,
+            reason[:200],
+            utc_now_iso(),
+        ),
+    )
 
 def parse_hours(text: str):
     """Extract a number from a free-form reply like '32', 'about 40', '~35.5'."""
@@ -827,6 +873,17 @@ def init_db():
                 raw_reply     TEXT NOT NULL,
                 created_at    TEXT NOT NULL,
                 FOREIGN KEY (consultant_id) REFERENCES consultants(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS sms_signup_attempts (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                name          TEXT,
+                phone         TEXT,
+                ip_address    TEXT,
+                user_agent    TEXT,
+                status        TEXT NOT NULL,
+                reason        TEXT,
+                created_at    TEXT NOT NULL
             );
         """)
         ensure_week_metadata_columns(db, "responses")
@@ -1614,17 +1671,37 @@ def sms_signup():
     if request.method == "GET":
         return render_template("sms_signup.html", consent_text=consent_text, submitted=False)
 
-    name = (request.form.get("name") or "").strip()
+    name = re.sub(r"\s+", " ", (request.form.get("name") or "").strip())
     phone = normalize_phone(request.form.get("phone") or "")
     consent = request.form.get("sms_consent") == "yes"
+    honeypot = (request.form.get("company_website") or "").strip()
+    ip_address = client_ip_address()
 
     errors = []
-    if not name:
-        errors.append("Name is required.")
-    if not phone:
-        errors.append("Mobile number is required.")
+    if honeypot:
+        with get_db() as db:
+            record_signup_attempt(db, name, phone, "blocked", "honeypot")
+        return render_template("sms_signup.html", consent_text=consent_text, submitted=True, held_for_review=True), 202
+    if not SIGNUP_NAME_RE.match(name):
+        errors.append("Enter your full name using letters, spaces, apostrophes, periods, or hyphens.")
+    if not phone or not re.fullmatch(r"\+1\d{10}", phone):
+        errors.append("Enter a valid U.S. mobile number, including area code.")
+
+    with get_db() as db:
+        if signup_rate_limit_exceeded(db, ip_address, phone):
+            record_signup_attempt(db, name, phone, "blocked", "rate_limit")
+            return render_template(
+                "sms_signup.html",
+                consent_text=consent_text,
+                errors=["Too many signup attempts were received. Please try again later or contact your administrator."],
+                name=name,
+                phone=request.form.get("phone") or "",
+                submitted=False,
+            ), 429
 
     if errors:
+        with get_db() as db:
+            record_signup_attempt(db, name, phone, "rejected", "; ".join(errors))
         return render_template(
             "sms_signup.html",
             consent_text=consent_text,
@@ -1635,6 +1712,8 @@ def sms_signup():
         ), 400
 
     if not consent:
+        with get_db() as db:
+            record_signup_attempt(db, name, phone, "submitted", "no_sms_consent")
         return render_template(
             "sms_signup.html",
             consent_text=consent_text,
@@ -1648,10 +1727,11 @@ def sms_signup():
         existing_phone = db.execute("SELECT id FROM consultants WHERE phone = ?", (phone,)).fetchone()
         existing_name = db.execute("SELECT id FROM consultants WHERE lower(name) = lower(?)", (name,)).fetchone()
         if existing_phone:
-            errors.append("That mobile number is already registered.")
+            errors.append("That mobile number is already on the Billable Hours Tracker roster.")
         if existing_name:
-            errors.append("That name is already registered.")
+            errors.append("That name is already on the Billable Hours Tracker roster.")
         if errors:
+            record_signup_attempt(db, name, phone, "rejected", "duplicate")
             return render_template(
                 "sms_signup.html",
                 consent_text=consent_text,
@@ -1672,11 +1752,12 @@ def sms_signup():
                 phone,
                 consent_text,
                 "sms_signup",
-                request.headers.get("X-Forwarded-For", request.remote_addr),
+                ip_address,
                 request.headers.get("User-Agent"),
                 utc_now_iso(),
             ),
         )
+        record_signup_attempt(db, name, phone, "accepted", "sms_opt_in")
 
     return render_template(
         "sms_signup.html",

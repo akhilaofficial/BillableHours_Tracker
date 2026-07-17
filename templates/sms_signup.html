@@ -1,66 +1,130 @@
 {% extends "sms_public_base.html" %}
-{% block title %}EPI-USE America, Inc. SMS Signup{% endblock %}
+{% block title %}EPI-USE Consultant SMS Opt-In{% endblock %}
 {% block content %}
-  <h1>EPI-USE America, Inc. SMS Signup</h1>
-  <p>
-    Use this form to manage optional SMS reminders for EPI-USE billable-hours
-    forecasting. SMS consent is optional and is not required to participate in
-    the Billable Hours Tracker process.
-  </p>
-
-  <h2>Signup Flow</h2>
-  <p>
-    Enter your name and mobile phone number, review the optional SMS consent
-    language, choose whether to check the unchecked SMS consent box, and submit
-    the form. Only users who check the box will be enrolled in SMS reminders.
-  </p>
-
-  {% if submitted %}
-    <div class="success">
-      {% if sms_opted_in %}
-        <strong>SMS opt-in received.</strong>
-        <p>
-          {{ name }} at {{ phone }} is opted in to EPI-USE America, Inc. SMS
-          messages for billable-hours forecasting and reminders.
-        </p>
-      {% else %}
-        <strong>Preference submitted.</strong>
-        <p>
-          No SMS opt-in was recorded because the SMS consent box was not checked.
-          You can still participate in the Billable Hours Tracker process without
-          receiving SMS reminders.
-        </p>
-      {% endif %}
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Consultant SMS Preferences</p>
+      <h1>Billable Hours SMS Opt-In</h1>
+      <p>
+        Use this page to join optional EPI-USE America, Inc. text reminders for
+        weekly billable-hours forecasting. SMS consent is optional and is not a
+        condition of your work or any transaction.
+      </p>
     </div>
-  {% else %}
-    {% if errors %}
-      <div class="errors">
-        <strong>Please fix the following:</strong>
-        <ul>
-          {% for error in errors %}
-            <li>{{ error }}</li>
-          {% endfor %}
-        </ul>
+    <aside class="hero-panel">
+      <strong>What you will receive</strong>
+      <p>
+        Low-volume reminders asking for your expected weekly billable hours.
+        Reply with a number such as <code>40</code>. Reply <code>HELP</code>
+        for instructions or <code>STOP</code> to opt out.
+      </p>
+    </aside>
+  </section>
+
+  <section class="grid">
+    <aside class="card">
+      <p class="section-label">How It Works</p>
+      <h2>Simple, optional, auditable</h2>
+      <ul class="check-list">
+        <li>Your manager or administrator provides this opt-in link.</li>
+        <li>You enter your name and U.S. mobile number.</li>
+        <li>The consent checkbox starts unchecked and must be selected by you.</li>
+        <li>Your opt-in is recorded with timestamp, source, and consent text.</li>
+        <li>You can opt out anytime by replying STOP.</li>
+      </ul>
+      <div class="legal-links">
+        <a href="/sms-terms">Terms</a>
+        <a href="/sms-privacy">Privacy</a>
       </div>
-    {% endif %}
+    </aside>
 
-    <form method="post" action="/sms-signup">
-      <label for="name">Full name</label>
-      <input id="name" name="name" type="text" value="{{ name or '' }}" required>
+    <section class="card">
+      {% if submitted %}
+        <p class="section-label">Submitted</p>
+        {% if held_for_review %}
+          <div class="notice">
+            <strong>Thanks.</strong>
+            <p>Your preference was received.</p>
+          </div>
+        {% elif sms_opted_in %}
+          <div class="success">
+            <strong>SMS opt-in received.</strong>
+            <p>
+              {{ name }} at {{ phone }} is opted in to EPI-USE America, Inc.
+              SMS messages for billable-hours forecasting and reminders.
+            </p>
+          </div>
+        {% else %}
+          <div class="notice">
+            <strong>Preference submitted.</strong>
+            <p>
+              No SMS opt-in was recorded because the SMS consent box was not
+              checked. You can still participate in the Billable Hours Tracker
+              process without SMS reminders.
+            </p>
+          </div>
+        {% endif %}
+      {% else %}
+        <p class="section-label">Opt-In Form</p>
+        <h2>Confirm Your SMS Preference</h2>
+        <p class="muted">
+          Enter the same name and mobile number your administrator expects in
+          the Billable Hours Tracker roster.
+        </p>
 
-      <label for="phone">Mobile phone number</label>
-      <input id="phone" name="phone" type="tel" value="{{ phone or '' }}" placeholder="+1 555 555 0100" required>
+        {% if errors %}
+          <div class="errors">
+            <strong>Please fix the following:</strong>
+            <ul>
+              {% for error in errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
 
-      <div class="checkbox-row">
-        <input id="sms_consent" name="sms_consent" type="checkbox" value="yes">
-        <label for="sms_consent">
-          {{ consent_text }}
-          Terms: <a href="/sms-terms">https://billable-hours-tracker.onrender.com/sms-terms</a>.
-          Privacy: <a href="/sms-privacy">https://billable-hours-tracker.onrender.com/sms-privacy</a>.
-        </label>
-      </div>
+        <form method="post" action="/sms-signup" novalidate>
+          <div class="hp-field" aria-hidden="true">
+            <label for="company_website">Company website</label>
+            <input id="company_website" name="company_website" type="text" tabindex="-1" autocomplete="off">
+          </div>
 
-      <button type="submit">Submit SMS Preference</button>
-    </form>
-  {% endif %}
+          <label for="name">Full name</label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            value="{{ name or '' }}"
+            autocomplete="name"
+            minlength="2"
+            maxlength="80"
+            required
+          >
+
+          <label for="phone">Mobile phone number</label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            value="{{ phone or '' }}"
+            placeholder="+1 555 555 0100"
+            autocomplete="tel"
+            inputmode="tel"
+            required
+          >
+
+          <div class="checkbox-row">
+            <input id="sms_consent" name="sms_consent" type="checkbox" value="yes">
+            <label for="sms_consent">
+              {{ consent_text }}
+              Terms: <a href="/sms-terms">https://billable-hours-tracker.onrender.com/sms-terms</a>.
+              Privacy: <a href="/sms-privacy">https://billable-hours-tracker.onrender.com/sms-privacy</a>.
+            </label>
+          </div>
+
+          <button type="submit">Submit SMS Preference</button>
+        </form>
+      {% endif %}
+    </section>
+  </section>
 {% endblock %}

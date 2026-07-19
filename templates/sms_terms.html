@@ -1,57 +1,93 @@
 {% extends "sms_public_base.html" %}
 {% block title %}EPI-USE America, Inc. SMS Terms{% endblock %}
 {% block content %}
-  <h1>EPI-USE America, Inc. SMS Terms</h1>
-  <p>Last updated: July 10, 2026</p>
+  <article class="document">
+    <header class="document-header">
+      <p class="eyebrow">SMS Terms</p>
+      <h1>EPI-USE America, Inc. SMS Terms</h1>
+      <p>
+        These terms describe the optional SMS reminders used by the EPI-USE
+        America, Inc. Billable Hours Tracker.
+      </p>
+      <div class="actions">
+        <a class="button-link primary" href="/sms-signup">SMS Signup Form</a>
+        <a class="button-link" href="/sms-privacy">SMS Privacy</a>
+      </div>
+    </header>
 
-  <p>
-    SMS consent is optional and is not required to participate in the Billable
-    Hours Tracker process. By checking the optional SMS consent box on the
-    <a href="/sms-signup">SMS Signup Form</a>, or by texting START, YES, or
-    UNSTOP to +1 989 864 2355, the EPI-USE America, Inc. SMS number, you agree
-    to receive text messages related to internal billable-hours forecasting and
-    follow-up reminders.
-  </p>
+    <section class="term-grid">
+      <div class="term-section">
+        <p class="section-label">Last Updated</p>
+        <p>July 10, 2026</p>
+      </div>
 
-  <h2>Program Description</h2>
-  <p>
-    EPI-USE America, Inc. uses SMS to request weekly billable-hours forecasts
-    from opted-in consultants and to send follow-up reminders when a response
-    has not been received.
-  </p>
+      <div class="term-section">
+        <h2>Program Description</h2>
+        <p>
+          EPI-USE America, Inc. uses SMS to request weekly billable-hours
+          forecasts from opted-in consultants and to send follow-up reminders
+          when a response has not been received.
+        </p>
+      </div>
 
-  <h2>Message Frequency</h2>
-  <p>
-    Message frequency varies, but messages are typically sent weekly, with
-    occasional follow-up reminders.
-  </p>
+      <div class="term-section">
+        <h2>Optional Consent</h2>
+        <p>
+          SMS consent is optional and is not required to participate in the
+          Billable Hours Tracker process. You may use the tracker process
+          without receiving SMS reminders.
+        </p>
+      </div>
 
-  <h2>Costs</h2>
-  <p>Message and data rates may apply.</p>
+      <div class="term-section">
+        <h2>How to Opt In</h2>
+        <p>
+          You may opt in by checking the optional SMS consent box on the
+          <a href="/sms-signup">SMS Signup Form</a>, or by texting
+          <code>START</code>, <code>YES</code>, or <code>UNSTOP</code> to
+          <code>+1 989 864 2355</code>, the EPI-USE America, Inc. SMS number.
+        </p>
+      </div>
 
-  <h2>Opt Out</h2>
-  <p>
-    You can cancel SMS messages at any time by replying STOP. After you send
-    STOP, you may receive a final confirmation message and will no longer
-    receive messages from this SMS program.
-  </p>
+      <div class="term-section">
+        <h2>Message Frequency</h2>
+        <p>
+          Message frequency varies, but messages are typically sent weekly with
+          occasional follow-up reminders.
+        </p>
+      </div>
 
-  <h2>Help</h2>
-  <p>
-    Reply HELP for help. You may also contact your EPI-USE manager or
-    administrator for support.
-  </p>
+      <div class="term-section">
+        <h2>Costs</h2>
+        <p>Message and data rates may apply.</p>
+      </div>
 
-  <h2>Privacy</h2>
-  <p>
-    Mobile information will not be shared with third parties or affiliates for
-    marketing or promotional purposes. See the
-    <a href="/sms-privacy">SMS Privacy Policy</a>.
-  </p>
+      <div class="term-section">
+        <h2>Opt Out</h2>
+        <p>
+          You can cancel SMS messages at any time by replying <code>STOP</code>.
+          After you send STOP, you may receive a final confirmation message and
+          will no longer receive messages from this SMS program.
+        </p>
+      </div>
 
-  <h2>Opt-In Instructions</h2>
-  <p>
-    See the <a href="/sms-opt-in">SMS Opt-In Instructions</a> and
-    <a href="/sms-signup">SMS Signup Form</a>.
-  </p>
+      <div class="term-section">
+        <h2>Help</h2>
+        <p>
+          Reply <code>HELP</code> for help. You may also contact your EPI-USE
+          manager or administrator for support.
+        </p>
+      </div>
+
+      <div class="term-section">
+        <h2>Privacy</h2>
+        <p>
+          Mobile information will not be shared with third parties or affiliates
+          for marketing or promotional purposes. SMS opt-in data and consent are
+          not sold, rented, or shared for marketing. See the
+          <a href="/sms-privacy">SMS Privacy Policy</a>.
+        </p>
+      </div>
+    </section>
+  </article>
 {% endblock %}

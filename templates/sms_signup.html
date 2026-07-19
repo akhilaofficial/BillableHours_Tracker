@@ -6,39 +6,54 @@
       <p class="eyebrow">Consultant SMS Preferences</p>
       <h1>Billable Hours SMS Opt-In</h1>
       <p>
-        Use this page to join optional EPI-USE America, Inc. text reminders for
-        weekly billable-hours forecasting. SMS consent is optional and is not a
+        Join optional EPI-USE America, Inc. text reminders for weekly
+        billable-hours forecasting. SMS consent is optional and is not a
         condition of your work or any transaction.
       </p>
+      <div class="actions">
+        <a class="button-link primary" href="#signup-form">Start Opt-In</a>
+        <a class="button-link" href="/sms-terms">SMS Terms</a>
+        <a class="button-link" href="/sms-privacy">SMS Privacy</a>
+      </div>
     </div>
     <aside class="hero-panel">
-      <strong>What you will receive</strong>
+      <strong>What to expect</strong>
       <p>
-        Low-volume reminders asking for your expected weekly billable hours.
-        Reply with a number such as <code>40</code>. Reply <code>HELP</code>
-        for instructions or <code>STOP</code> to opt out.
+        Messages ask for your expected weekly billable hours. Reply with a
+        number such as <code>40</code>. Reply <code>HELP</code> for instructions
+        or <code>STOP</code> to opt out.
       </p>
     </aside>
   </section>
 
-  <section class="grid">
+  <section class="grid grid-balanced">
     <aside class="card">
-      <p class="section-label">How It Works</p>
-      <h2>Simple, optional, auditable</h2>
-      <ul class="check-list">
-        <li>Your manager or administrator provides this opt-in link.</li>
-        <li>You enter your name and U.S. mobile number.</li>
-        <li>The consent checkbox starts unchecked and must be selected by you.</li>
-        <li>Your opt-in is recorded with timestamp, source, and consent text.</li>
-        <li>You can opt out anytime by replying STOP.</li>
+      <p class="section-label">Program Summary</p>
+      <h2>Weekly reminders for forecast responses</h2>
+      <p class="muted">
+        The Billable Hours Tracker helps EPI-USE America, Inc. collect weekly
+        consultant forecast responses for internal workforce planning.
+      </p>
+      <ul class="summary-list">
+        <li>
+          <strong>Purpose</strong>
+          SMS reminders ask for expected billable hours for the current
+          reporting week.
+        </li>
+        <li>
+          <strong>Frequency</strong>
+          Message frequency varies, but messages are typically weekly with
+          occasional follow-up reminders.
+        </li>
+        <li>
+          <strong>Your choice</strong>
+          You can use the tracker process without SMS reminders. You can opt
+          out of SMS at any time by replying STOP.
+        </li>
       </ul>
-      <div class="legal-links">
-        <a href="/sms-terms">Terms</a>
-        <a href="/sms-privacy">Privacy</a>
-      </div>
     </aside>
 
-    <section class="card">
+    <section class="card" id="signup-form">
       {% if submitted %}
         <p class="section-label">Submitted</p>
         {% if held_for_review %}
@@ -68,8 +83,8 @@
         <p class="section-label">Opt-In Form</p>
         <h2>Confirm Your SMS Preference</h2>
         <p class="muted">
-          Enter the same name and mobile number your administrator expects in
-          the Billable Hours Tracker roster.
+          Enter your name and mobile number, then select the optional SMS
+          consent checkbox if you want text reminders.
         </p>
 
         {% if errors %}

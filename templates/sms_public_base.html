@@ -100,7 +100,7 @@
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
       gap: 28px;
-      align-items: center;
+      align-items: start;
       padding: 44px 48px;
       border-radius: 8px;
       color: #fff;
@@ -122,8 +122,8 @@
 
     h1 {
       margin: 0;
-      font-size: clamp(2.5rem, 6vw, 4.8rem);
-      line-height: 0.95;
+      font-size: clamp(2.4rem, 5vw, 4.1rem);
+      line-height: 1.04;
       letter-spacing: 0;
     }
 
@@ -148,11 +148,48 @@
       font-size: 1.2rem;
     }
 
+    .hero code {
+      color: var(--navy);
+      background: rgba(255,255,255,0.92);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #155eef;
+      background: #fff;
+      text-decoration: none;
+      font-weight: 900;
+    }
+
+    .button-link.primary {
+      border-color: var(--red);
+      color: #fff;
+      background: var(--red);
+      box-shadow: 0 14px 28px rgba(227, 34, 42, 0.22);
+    }
+
     .grid {
       display: grid;
       grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
       gap: 28px;
       margin-top: 28px;
+    }
+
+    .grid-balanced {
+      grid-template-columns: 1fr 1fr;
     }
 
     .card {
@@ -170,6 +207,68 @@
     }
 
     .muted { color: var(--muted); }
+
+    .summary-list {
+      display: grid;
+      gap: 12px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .summary-list li {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--soft);
+    }
+
+    .summary-list strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--ink);
+    }
+
+    .document {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .document-header {
+      margin-bottom: 24px;
+      padding: 34px;
+      border-radius: var(--radius);
+      color: #fff;
+      background: linear-gradient(135deg, #071f50 0%, #173d73 60%, #7ba8c4 100%);
+      box-shadow: var(--shadow);
+    }
+
+    .document-header h1 {
+      max-width: 760px;
+    }
+
+    .document-header p {
+      max-width: 720px;
+      color: rgba(255,255,255,0.88);
+    }
+
+    .term-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .term-section {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: 0 12px 34px rgba(9, 39, 90, 0.06);
+    }
+
+    .term-section h2 {
+      margin-top: 0;
+      color: var(--ink);
+    }
 
     label {
       display: block;
@@ -317,6 +416,7 @@
       padding: 2px 6px;
       border-radius: 4px;
       background: #eef4ff;
+      color: var(--navy);
       font-size: 1rem;
     }
 
@@ -352,8 +452,9 @@
       </div>
     </div>
     <nav class="top-links" aria-label="SMS pages">
-      <a class="top-link" href="/sms-signup">SMS Signup</a>
+      <a class="top-link" href="/sms-opt-in">Home</a>
       <a class="top-link" href="/sms-terms">SMS Terms</a>
+      <a class="top-link" href="/sms-privacy">SMS Privacy</a>
     </nav>
   </header>
   <main>

@@ -61,6 +61,9 @@ Optional:
 
 Scheduler values are UTC. Keep the host cron/scheduler configuration in UTC too.
 
+The automatic Monday SMS job sends prompts for the previous completed UTC week.
+Manual "Send Texts Now" uses the reporting cycle selected in the dashboard.
+
 ## Local Development
 
 Install dependencies:

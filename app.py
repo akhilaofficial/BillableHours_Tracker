@@ -83,13 +83,16 @@ if SENTRY_DSN and sentry_sdk and FlaskIntegration:
 # ─── Helpers ───────────────────────────────────────────────────────────────────
 
 def current_week_monday():
-    """Return the ISO date string for the active reporting cycle Monday."""
-    configured_cycle = get_reporting_cycle_date()
-    if configured_cycle:
-        return configured_cycle
+    """Return the ISO date string for the current UTC week's Monday."""
     today = datetime.now(timezone.utc)
     monday = today - timedelta(days=today.weekday())
     return monday.strftime("%Y-%m-%d")
+
+def previous_week_monday():
+    """Return the ISO date string for the previous completed UTC week's Monday."""
+    current = datetime.strptime(current_week_monday(), "%Y-%m-%d")
+    previous = current - timedelta(days=7)
+    return previous.strftime("%Y-%m-%d")
 
 def validate_reporting_cycle_date(value: str):
     """Validate a YYYY-MM-DD date and normalize it to that week's Monday."""
@@ -1276,9 +1279,9 @@ def get_history_for_consultant(consultant_id: int, week_of: str):
 
 # ─── Weekly job ────────────────────────────────────────────────────────────────
 
-def send_weekly_texts():
-    """Runs every Monday morning. Sends the question to all consultants."""
-    week_of = current_week_monday()
+def send_weekly_texts(week_of=None):
+    """Send the weekly prompt to all SMS-active consultants for a specific week."""
+    week_of = validate_reporting_cycle_date(week_of or current_week_monday())
     results = {"sent": 0, "failed": []}
     with get_db() as db:
         consultants = db.execute("SELECT * FROM consultants").fetchall()
@@ -1295,6 +1298,10 @@ def send_weekly_texts():
             results["failed"].append(message)
     return results
 
+def send_previous_week_texts():
+    """Scheduled Monday job: ask for the previous completed week's hours."""
+    return send_weekly_texts(previous_week_monday())
+
 def run_monthly_excel_job():
     """Generate this month's Excel report on the final calendar day."""
     month_value = datetime.now(timezone.utc).strftime("%Y-%m")
@@ -1309,7 +1316,7 @@ def run_monthly_excel_job():
 
 # Schedules are expressed in UTC for deployment consistency.
 scheduler = BackgroundScheduler(timezone=timezone.utc)
-scheduler.add_job(send_weekly_texts, "cron", day_of_week="mon", hour=WEEKLY_PROMPT_UTC_HOUR, minute=0)
+scheduler.add_job(send_previous_week_texts, "cron", day_of_week="mon", hour=WEEKLY_PROMPT_UTC_HOUR, minute=0)
 scheduler.add_job(run_monthly_excel_job, "cron", day="last", hour=MONTHLY_REPORT_UTC_HOUR, minute=0)
 scheduler.start()
 
@@ -1585,7 +1592,7 @@ def weekly_summary():
 
 @app.route("/api/reporting-cycle", methods=["GET"])
 def get_reporting_cycle():
-    cycle_date = current_week_monday()
+    cycle_date = get_reporting_cycle_date() or current_week_monday()
     return jsonify({"reporting_cycle_date": cycle_date})
 
 @app.route("/api/reporting-cycle", methods=["POST"])
@@ -1603,8 +1610,15 @@ def update_reporting_cycle():
 
 @app.route("/api/send-now", methods=["POST"])
 def send_now():
-    """Manually trigger the weekly text blast (for testing)."""
-    results = send_weekly_texts()
+    """Manually trigger the weekly text blast for the selected reporting cycle."""
+    data = request.json or {}
+    week_of = data.get("week_of", "").strip() or get_reporting_cycle_date() or current_week_monday()
+    try:
+        week_of = validate_reporting_cycle_date(week_of)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    results = send_weekly_texts(week_of)
     if results["failed"]:
         details = " | ".join(results["failed"][:3])
         return jsonify({

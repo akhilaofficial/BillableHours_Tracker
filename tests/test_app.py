@@ -54,6 +54,24 @@ def test_current_week_monday_uses_current_utc_week_without_setting(tracker_app):
     assert tracker_app.current_week_monday() == expected
 
 
+def test_current_week_monday_ignores_saved_reporting_cycle(tracker_app):
+    with tracker_app.get_db() as db:
+        db.execute(
+            "INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            ("reporting_cycle_date", "2026-06-08"),
+        )
+
+    today = datetime.now(timezone.utc)
+    expected = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+    assert tracker_app.current_week_monday() == expected
+
+
+def test_previous_week_monday_uses_previous_completed_utc_week(tracker_app):
+    current = datetime.strptime(tracker_app.current_week_monday(), "%Y-%m-%d")
+    expected = (current - timedelta(days=7)).strftime("%Y-%m-%d")
+    assert tracker_app.previous_week_monday() == expected
+
+
 def test_sms_reply_saves_response_for_registered_consultant(tracker_app):
     client = tracker_app.app.test_client()
     phone = "+15551234567"

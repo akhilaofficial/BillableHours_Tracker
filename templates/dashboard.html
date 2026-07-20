@@ -1378,7 +1378,12 @@
 
   async function sendNow() {
     if (!confirm('Send the weekly text to all consultants now?')) return;
-    const res = await fetch('/api/send-now', { method: 'POST' });
+    const week = selectedWeek ?? reportingCycleDate;
+    const res = await fetch('/api/send-now', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ week_of: week })
+    });
     const data = await res.json().catch(() => ({}));
     showToast(data.message ?? 'Texts sent');
     await loadResponses();

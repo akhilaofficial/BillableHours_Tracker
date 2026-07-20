@@ -1277,6 +1277,27 @@ def get_history_for_consultant(consultant_id: int, week_of: str):
     )
     return sorted(items, key=lambda item: item["timestamp"], reverse=True)
 
+def latest_message_week_for_consultant(consultant_id: int):
+    """Return the week for the most recent outbound prompt/reminder to a consultant."""
+    with get_db() as db:
+        row = db.execute(
+            """
+            SELECT week_of
+            FROM message_log
+            WHERE consultant_id = ?
+              AND status = 'sent'
+              AND message_type IN ('weekly_prompt', 'reminder', 'manual_follow_up')
+            ORDER BY sent_at DESC, id DESC
+            LIMIT 1
+            """,
+            (consultant_id,),
+        ).fetchone()
+    return row["week_of"] if row else None
+
+def response_week_for_consultant(consultant_id: int):
+    """Use the latest sent message week for replies, falling back to the current UTC week."""
+    return latest_message_week_for_consultant(consultant_id) or current_week_monday()
+
 # ─── Weekly job ────────────────────────────────────────────────────────────────
 
 def send_weekly_texts(week_of=None):
@@ -1330,7 +1351,6 @@ def sms_reply():
     from_number = normalize_phone(request.form.get("From", "").strip())
     body        = request.form.get("Body", "").strip()
     keyword     = re.sub(r"\s+", "", body.upper())
-    week_of     = current_week_monday()
 
     resp = MessagingResponse()
 
@@ -1343,6 +1363,7 @@ def sms_reply():
         resp.message("Sorry, your number isn't registered. Ask your manager to add you.")
         return str(resp)
 
+    week_of = response_week_for_consultant(consultant["id"])
     received_at = utc_now_iso()
 
     if keyword in OPT_OUT_KEYWORDS:

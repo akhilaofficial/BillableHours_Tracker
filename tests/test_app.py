@@ -100,6 +100,54 @@ def test_sms_reply_saves_response_for_registered_consultant(tracker_app):
     }
 
 
+def test_sms_reply_uses_latest_sent_prompt_week(tracker_app):
+    client = tracker_app.app.test_client()
+    phone = "+15557654321"
+    with tracker_app.get_db() as db:
+        cursor = db.execute("INSERT INTO consultants (name, phone) VALUES (?, ?)", ("Prompted Consultant", phone))
+        consultant_id = cursor.lastrowid
+        period = tracker_app.reporting_period_parts("2026-07-13")
+        db.execute(
+            """
+            INSERT INTO message_log
+                (
+                    consultant_id, week_of, reporting_year, reporting_week, reporting_week_label,
+                    message_type, body, status, sent_at
+                )
+            VALUES (?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                consultant_id,
+                "2026-07-13",
+                period["reporting_year"],
+                period["reporting_week"],
+                period["reporting_week_label"],
+                "weekly_prompt",
+                "Prompt for previous week",
+                "sent",
+                "2026-07-20T15:00:00+00:00",
+            ),
+        )
+
+    response = client.post("/sms", data={"From": phone, "Body": "40"})
+
+    assert response.status_code == 200
+    assert b"week of 2026-07-13" in response.data
+
+    with tracker_app.get_db() as db:
+        row = db.execute(
+            """
+            SELECT week_of, hours
+            FROM responses r
+            JOIN consultants c ON c.id = r.consultant_id
+            WHERE c.phone = ?
+            """,
+            (phone,),
+        ).fetchone()
+
+    assert dict(row) == {"week_of": "2026-07-13", "hours": 40.0}
+
+
 def test_monthly_export_returns_xlsx(tracker_app):
     client = tracker_app.app.test_client()
     response = client.get("/api/export/monthly?month=2026-05")
@@ -165,8 +213,30 @@ def test_sms_reply_stores_exact_split_hours(tracker_app):
     client = tracker_app.app.test_client()
     phone = "+15559870000"
     with tracker_app.get_db() as db:
-        db.execute("INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", ("reporting_cycle_date", "2026-04-27"))
-        db.execute("INSERT INTO consultants (name, phone) VALUES (?, ?)", ("Split Reply", phone))
+        cursor = db.execute("INSERT INTO consultants (name, phone) VALUES (?, ?)", ("Split Reply", phone))
+        consultant_id = cursor.lastrowid
+        period = tracker_app.reporting_period_parts("2026-04-27")
+        db.execute(
+            """
+            INSERT INTO message_log
+                (
+                    consultant_id, week_of, reporting_year, reporting_week, reporting_week_label,
+                    message_type, body, status, sent_at
+                )
+            VALUES (?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                consultant_id,
+                "2026-04-27",
+                period["reporting_year"],
+                period["reporting_week"],
+                period["reporting_week_label"],
+                "weekly_prompt",
+                "Prompt for split week",
+                "sent",
+                "2026-05-04T15:00:00+00:00",
+            ),
+        )
 
     response = client.post("/sms", data={"From": phone, "Body": "Apr 27-30=40; May 1-3=30"})
 

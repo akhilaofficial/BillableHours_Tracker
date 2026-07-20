@@ -84,6 +84,12 @@
       background: rgba(227,34,42,0.08);
     }
 
+    .btn-light {
+      border-color: var(--line);
+      color: var(--ink);
+      background: #fff;
+    }
+
     main {
       width: min(1180px, calc(100% - 32px));
       margin: 32px auto 56px;
@@ -274,6 +280,11 @@
         <div class="kicker">SMS Administration</div>
         <h1>Consultant SMS Status</h1>
         <p>Review who is opted in, who opted out, and who has not completed SMS consent. Remove consultants from the roster here instead of crowding the main dashboard.</p>
+        <div class="filters" style="margin-top: 18px">
+          <a class="btn btn-light" href="/sms-management">All SMS Statuses</a>
+          <a class="btn btn-light" href="/sms-opted-in">SMS Opted In</a>
+          <a class="btn btn-light" href="/sms-opted-out">SMS Opted Out</a>
+        </div>
       </div>
     </section>
 
@@ -323,7 +334,7 @@
 
   <script>
     let rows = [];
-    let activeFilter = 'all';
+    let activeFilter = '{{ initial_filter }}';
     const filters = [
       ['all', 'All'],
       ['opted_in', 'SMS opted in'],

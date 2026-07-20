@@ -1759,7 +1759,15 @@ def dashboard():
 
 @app.route("/sms-management")
 def sms_management():
-    return render_template("sms_management.html")
+    return render_template("sms_management.html", initial_filter="all")
+
+@app.route("/sms-opted-in")
+def sms_opted_in_management():
+    return render_template("sms_management.html", initial_filter="opted_in")
+
+@app.route("/sms-opted-out")
+def sms_opted_out_management():
+    return render_template("sms_management.html", initial_filter="opted_out")
 
 @app.route("/sms-terms")
 def sms_terms():

@@ -536,6 +536,20 @@
     background: linear-gradient(180deg, #f8fbfd 0%, #ffffff 100%);
   }
 
+  .directory-search {
+    display: none;
+    margin: 0 0 1rem;
+  }
+
+  .directory-search.show {
+    display: block;
+  }
+
+  .directory-search input {
+    width: 100%;
+    max-width: 520px;
+  }
+
   .table-wrap {
     overflow-x: auto;
     border-radius: 8px;
@@ -953,6 +967,11 @@
             <div class="status-filters" id="status-filters"></div>
           </div>
 
+          <div class="directory-search" id="directory-search">
+            <div class="field-label">Search Team Directory</div>
+            <input id="directory-search-input" type="search" placeholder="Search by name or mobile number" oninput="setDirectorySearch(this.value)">
+          </div>
+
           <div class="table-wrap">
             <table>
               <thead id="response-head">
@@ -1012,6 +1031,7 @@
   let reportingCycleDate = null;
   let activeFilter = 'all';
   let activeMessageTarget = null;
+  let directorySearch = '';
 
   const filters = [
     { key: 'team_directory', label: 'Team Directory' },
@@ -1165,6 +1185,8 @@
   }
 
   function renderResponses() {
+    document.getElementById('directory-search').classList.toggle('show', isDirectoryFilter(activeFilter));
+
     if (isDirectoryFilter(activeFilter)) {
       renderTeamDirectory();
       return;
@@ -1228,14 +1250,18 @@
     `;
 
     const tbody = document.getElementById('response-body');
+    const searchTerm = directorySearch.trim().toLowerCase();
     const filteredConsultants = consultants.filter(c => {
       if (activeFilter === 'sms_opted_in') return c.sms_status === 'opted_in';
       if (activeFilter === 'sms_opted_out') return c.sms_status === 'opted_out';
       return true;
+    }).filter(c => {
+      if (!searchTerm) return true;
+      return `${c.name} ${c.phone}`.toLowerCase().includes(searchTerm);
     });
 
     if (!filteredConsultants.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="no-response">No consultants yet.</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="6" class="no-response">${searchTerm ? 'No consultants match that search.' : 'No consultants yet.'}</td></tr>`;
       return;
     }
 
@@ -1261,6 +1287,11 @@
 
   function isDirectoryFilter(filterKey) {
     return ['team_directory', 'sms_opted_in', 'sms_opted_out'].includes(filterKey);
+  }
+
+  function setDirectorySearch(value) {
+    directorySearch = value;
+    renderTeamDirectory();
   }
 
   function selectWeek(w) {

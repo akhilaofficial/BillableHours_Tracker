@@ -315,7 +315,7 @@
 
   .content-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 360px minmax(0, 1fr);
     gap: 1.4rem;
     margin-top: 1.5rem;
     align-items: start;
@@ -437,22 +437,6 @@
     border-top: 1px solid var(--line);
     display: grid;
     gap: 0.75rem;
-  }
-
-  .team-tools {
-    display: none;
-    grid-template-columns: minmax(180px, 1fr) minmax(170px, 1fr) auto;
-    gap: 0.75rem;
-    align-items: end;
-    padding: 1rem;
-    margin: 0 0 1rem;
-    border: 1px solid rgba(103, 151, 184, 0.18);
-    border-radius: 8px;
-    background: linear-gradient(180deg, #f8fbfd 0%, #ffffff 100%);
-  }
-
-  .team-tools.show {
-    display: grid;
   }
 
   .field-label {
@@ -851,10 +835,6 @@
       grid-template-columns: 1fr;
     }
 
-    .team-tools {
-      grid-template-columns: 1fr;
-    }
-
     .stats {
       grid-template-columns: 1fr;
     }
@@ -931,6 +911,27 @@
     </section>
 
     <section class="content-grid">
+      <aside class="card">
+        <div class="card-inner">
+          <div class="card-header">
+            <div>
+              <div class="card-kicker">Team Directory</div>
+              <h2 class="card-title">Consultants</h2>
+            </div>
+          </div>
+
+          <div id="consultant-list" class="consultant-list">Loading...</div>
+
+          <div class="add-form">
+            <div class="field-label">Full Name</div>
+            <input id="inp-name" type="text" placeholder="Jane Smith">
+            <div class="field-label">Mobile Number</div>
+            <input id="inp-phone" type="tel" placeholder="+1 617 555 0000">
+            <button class="btn btn-primary" onclick="addConsultant()">Add Consultant</button>
+          </div>
+        </div>
+      </aside>
+
       <section class="card weekly-report-card">
         <div class="card-inner">
           <div class="card-header">
@@ -947,18 +948,6 @@
           <div class="report-controls">
             <div class="week-tabs" id="week-tabs"></div>
             <div class="status-filters" id="status-filters"></div>
-          </div>
-
-          <div class="team-tools" id="team-tools">
-            <div>
-              <div class="field-label">Full Name</div>
-              <input id="inp-name" type="text" placeholder="Jane Smith">
-            </div>
-            <div>
-              <div class="field-label">Mobile Number</div>
-              <input id="inp-phone" type="tel" placeholder="+1 617 555 0000">
-            </div>
-            <button class="btn btn-primary" onclick="addConsultant()">Add Consultant</button>
           </div>
 
           <div class="table-wrap">
@@ -1023,11 +1012,12 @@
 
   const filters = [
     { key: 'team_directory', label: 'Team Directory' },
+    { key: 'sms_opted_in', label: 'SMS opted in' },
+    { key: 'sms_opted_out', label: 'SMS opted out' },
     { key: 'all', label: 'All' },
     { key: 'pending', label: 'No reply' },
     { key: 'failed', label: 'Send failed' },
     { key: 'replied', label: 'Replied' },
-    { key: 'opted_out', label: 'SMS opted out' },
     { key: 'needs_follow_up', label: 'Needs follow-up' }
   ];
 
@@ -1073,7 +1063,8 @@
   async function loadConsultants() {
     const res = await fetch('/api/consultants');
     consultants = await res.json();
-    if (activeFilter === 'team_directory') renderResponses();
+    renderConsultants();
+    if (isDirectoryFilter(activeFilter)) renderResponses();
   }
 
   async function loadReportingCycle() {
@@ -1120,6 +1111,27 @@
     return c.sms_status === 'opted_out';
   }
 
+  function renderConsultants() {
+    const el = document.getElementById('consultant-list');
+    if (!consultants.length) {
+      el.innerHTML = '<p class="no-response">No consultants yet.</p>';
+      return;
+    }
+
+    el.innerHTML = consultants.map(c => `
+      <div class="consultant-item">
+        <div>
+          <div class="consultant-name">${escapeHtml(c.name)}</div>
+          <div class="consultant-phone">${escapeHtml(c.phone)}</div>
+          <div class="opt-in-badge ${smsStatusClass(c)}">
+            ${smsStatusLabel(c)}
+          </div>
+        </div>
+        <button class="btn btn-danger btn-small" type="button" onclick="removeConsultant(${c.id})">Delete</button>
+      </div>
+    `).join('');
+  }
+
   function smsStatusLabel(c) {
     return c.sms_status_label ?? (c.sms_opted_in_at ? 'SMS opted in' : 'No SMS opt-in');
   }
@@ -1150,8 +1162,7 @@
   }
 
   function renderResponses() {
-    document.getElementById('team-tools').classList.toggle('show', activeFilter === 'team_directory');
-    if (activeFilter === 'team_directory') {
+    if (isDirectoryFilter(activeFilter)) {
       renderTeamDirectory();
       return;
     }
@@ -1214,12 +1225,18 @@
     `;
 
     const tbody = document.getElementById('response-body');
-    if (!consultants.length) {
+    const filteredConsultants = consultants.filter(c => {
+      if (activeFilter === 'sms_opted_in') return c.sms_status === 'opted_in';
+      if (activeFilter === 'sms_opted_out') return c.sms_status === 'opted_out';
+      return true;
+    });
+
+    if (!filteredConsultants.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="no-response">No consultants yet.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = consultants.map(c => `
+    tbody.innerHTML = filteredConsultants.map(c => `
       <tr>
         <td><strong>${escapeHtml(c.name)}</strong></td>
         <td class="muted-cell">${escapeHtml(c.phone)}</td>
@@ -1237,6 +1254,10 @@
 
   function formatShortDate(value) {
     return value ? value.slice(0, 16).replace('T', ' ') : '-';
+  }
+
+  function isDirectoryFilter(filterKey) {
+    return ['team_directory', 'sms_opted_in', 'sms_opted_out'].includes(filterKey);
   }
 
   function selectWeek(w) {

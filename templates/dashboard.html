@@ -477,6 +477,21 @@
     margin: 0;
   }
 
+  .week-browser {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .month-select {
+    max-width: 240px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgba(103, 151, 184, 0.32);
+    border-radius: 8px;
+    background: white;
+    color: var(--midnight);
+    font-weight: 700;
+  }
+
   .week-tab {
     border: 1px solid rgba(103, 151, 184, 0.3);
     border-radius: 8px;
@@ -545,9 +560,27 @@
     display: block;
   }
 
-  .directory-search input {
+  .directory-search-row {
+    display: flex;
+    max-width: 560px;
+  }
+
+  .directory-search-row input {
     width: 100%;
-    max-width: 520px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .search-button {
+    min-width: 52px;
+    border: 1px solid rgba(103, 151, 184, 0.32);
+    border-left: 0;
+    border-radius: 0 8px 8px 0;
+    background: var(--midnight);
+    color: white;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
   }
 
   .table-wrap {
@@ -963,13 +996,22 @@
           </div>
 
           <div class="report-controls">
-            <div class="week-tabs" id="week-tabs"></div>
+            <div class="week-browser">
+              <div>
+                <div class="field-label">Reporting Month</div>
+                <select class="month-select" id="month-select" onchange="selectMonth(this.value)"></select>
+              </div>
+              <div class="week-tabs" id="week-tabs"></div>
+            </div>
             <div class="status-filters" id="status-filters"></div>
           </div>
 
           <div class="directory-search" id="directory-search">
             <div class="field-label">Search Team Directory</div>
-            <input id="directory-search-input" type="search" placeholder="Search by name or mobile number" oninput="setDirectorySearch(this.value)">
+            <div class="directory-search-row">
+              <input id="directory-search-input" type="search" placeholder="Search by name or mobile number" onkeydown="handleDirectorySearchKey(event)">
+              <button class="search-button" type="button" onclick="applyDirectorySearch()" aria-label="Search Team Directory">&#128269;</button>
+            </div>
           </div>
 
           <div class="table-wrap">
@@ -1027,6 +1069,7 @@
   let reportingRows = [];
   let weeks = [];
   let selectedWeek = null;
+  let selectedMonth = null;
   let consultants = [];
   let reportingCycleDate = null;
   let activeFilter = 'all';
@@ -1035,8 +1078,6 @@
 
   const filters = [
     { key: 'team_directory', label: 'Team Directory' },
-    { key: 'sms_opted_in', label: 'SMS opted in' },
-    { key: 'sms_opted_out', label: 'SMS opted out' },
     { key: 'all', label: 'All' },
     { key: 'pending', label: 'No reply' },
     { key: 'failed', label: 'Send failed' },
@@ -1078,6 +1119,20 @@
     return `${temp.getUTCFullYear()}-W${String(isoWeek).padStart(2, '0')}`;
   }
 
+  function monthKeyForWeek(week) {
+    if (!week) return '';
+    return week.slice(0, 7);
+  }
+
+  function formatMonthLabel(monthKey) {
+    if (!monthKey) return 'No month';
+    const date = new Date(`${monthKey}-01T12:00:00`);
+    return date.toLocaleDateString(undefined, {
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+
   async function load() {
     await loadReportingCycle();
     await Promise.all([loadConsultants(), loadResponses(), loadSummary()]);
@@ -1106,9 +1161,17 @@
     if (!selectedWeek) {
       selectedWeek = weeks.includes(reportingCycleDate) ? reportingCycleDate : (weeks[0] ?? reportingCycleDate);
     }
+    if (!selectedMonth || !weeks.some(w => monthKeyForWeek(w) === selectedMonth)) {
+      selectedMonth = monthKeyForWeek(selectedWeek ?? reportingCycleDate ?? weeks[0]);
+    }
+    const visibleWeeks = weeks.filter(w => monthKeyForWeek(w) === selectedMonth);
+    if (visibleWeeks.length && !visibleWeeks.includes(selectedWeek)) {
+      selectedWeek = visibleWeeks[0];
+    }
     const statusRes = await fetch(`/api/reporting-status?week_of=${encodeURIComponent(selectedWeek)}`);
     reportingRows = await statusRes.json();
     document.getElementById('hero-week').textContent = formatDashboardWeekLabel(reportingCycleDate ?? selectedWeek);
+    renderMonthSelect();
     renderWeekTabs();
     renderFilters();
     renderResponses();
@@ -1165,14 +1228,30 @@
     return 'opt-in-no';
   }
 
+  function renderMonthSelect() {
+    const el = document.getElementById('month-select');
+    const months = [...new Set(weeks.map(monthKeyForWeek).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+    if (!months.length) {
+      el.innerHTML = '<option value="">No months</option>';
+      return;
+    }
+    if (!selectedMonth || !months.includes(selectedMonth)) {
+      selectedMonth = months[0];
+    }
+    el.innerHTML = months.map(month => `
+      <option value="${month}" ${month === selectedMonth ? 'selected' : ''}>${formatMonthLabel(month)}</option>
+    `).join('');
+  }
+
   function renderWeekTabs() {
     const el = document.getElementById('week-tabs');
-    if (!weeks.length) {
+    const visibleWeeks = weeks.filter(w => monthKeyForWeek(w) === selectedMonth);
+    if (!visibleWeeks.length) {
       el.innerHTML = '<p class="no-response">No reporting weeks yet.</p>';
       return;
     }
 
-    el.innerHTML = weeks.map(w => `
+    el.innerHTML = visibleWeeks.map(w => `
       <button class="week-tab ${w === selectedWeek ? 'active' : ''}" onclick="selectWeek('${w}')">${weekBadge(w)}</button>
     `).join('');
   }
@@ -1252,10 +1331,6 @@
     const tbody = document.getElementById('response-body');
     const searchTerm = directorySearch.trim().toLowerCase();
     const filteredConsultants = consultants.filter(c => {
-      if (activeFilter === 'sms_opted_in') return c.sms_status === 'opted_in';
-      if (activeFilter === 'sms_opted_out') return c.sms_status === 'opted_out';
-      return true;
-    }).filter(c => {
       if (!searchTerm) return true;
       return `${c.name} ${c.phone}`.toLowerCase().includes(searchTerm);
     });
@@ -1286,16 +1361,29 @@
   }
 
   function isDirectoryFilter(filterKey) {
-    return ['team_directory', 'sms_opted_in', 'sms_opted_out'].includes(filterKey);
+    return filterKey === 'team_directory';
   }
 
-  function setDirectorySearch(value) {
-    directorySearch = value;
+  function applyDirectorySearch() {
+    directorySearch = document.getElementById('directory-search-input').value;
     renderTeamDirectory();
+  }
+
+  function handleDirectorySearchKey(event) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    applyDirectorySearch();
   }
 
   function selectWeek(w) {
     selectedWeek = w;
+    Promise.all([loadResponses(), loadSummary()]);
+  }
+
+  function selectMonth(month) {
+    selectedMonth = month;
+    const visibleWeeks = weeks.filter(w => monthKeyForWeek(w) === selectedMonth);
+    selectedWeek = visibleWeeks[0] ?? selectedWeek;
     Promise.all([loadResponses(), loadSummary()]);
   }
 
